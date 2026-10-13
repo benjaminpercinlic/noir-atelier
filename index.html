@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="NOIR ATELIER — Coming soon." />
+  <meta name="theme-color" content="#090909" />
+  <title>NOIR ATELIER — Coming soon</title>
+  <link rel="icon" href="assets/makers-mark.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Zum Inhalt springen</a>
+  <div class="veil" data-veil aria-hidden="true"></div>
+
+  <main id="main" class="stage">
+    <!-- Optional: legt assets/intro.mp4 ab — spielt dann als Einstieg -->
+    <div class="stage-media" aria-hidden="true">
+      <video
+        class="stage-video"
+        data-intro
+        muted
+        playsinline
+        preload="metadata"
+        poster="assets/atelier-atmosphere.jpg"
+      >
+        <source src="assets/intro.mp4" type="video/mp4" />
+      </video>
+      <img
+        class="stage-poster"
+        data-poster
+        src="assets/atelier-atmosphere.jpg"
+        alt=""
+        width="1600"
+        height="1067"
+        fetchpriority="high"
+      />
+    </div>
+
+    <div class="stage-content" data-lockup>
+      <div class="brand" aria-label="NOIR ATELIER">
+        <img
+          class="mark"
+          src="assets/mark.svg"
+          alt=""
+          width="400"
+          height="300"
+        />
+        <p class="wordmark">Noir Atelier</p>
+      </div>
+      <p class="status">Coming soon</p>
+      <p class="line">Ein Atelier für außergewöhnliche Objekte.</p>
+      <a class="mail" href="mailto:hello@noiratelier.studio">hello@noiratelier.studio</a>
+    </div>
+
+    <footer class="foot">
+      <nav aria-label="Rechtliches">
+        <a href="#impressum">Impressum</a>
+        <a href="#datenschutz">Datenschutz</a>
+      </nav>
+    </footer>
+  </main>
+
+  <aside class="legal" id="impressum">
+    <h2>Impressum</h2>
+    <p>Angaben folgen mit der öffentlichen Markteinführung.</p>
+    <a href="#main">Schließen</a>
+  </aside>
+  <aside class="legal" id="datenschutz">
+    <h2>Datenschutz</h2>
+    <p>Keine Tracking-Daten. Kein Shop.</p>
+    <a href="#main">Schließen</a>
+  </aside>
+
+  <script src="js/main.js" defer></script>
+</body>
+</html>
