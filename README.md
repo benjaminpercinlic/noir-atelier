@@ -1,22 +1,16 @@
-# NOIR ATELIER
+# NOIR ATELIER — N°01
 
-Coming-soon Landing. Eine Startseite zum Domain-Deploy — Launch später.
+Interactive 3D prototype (One Motion Bloom).
 
-## Öffnen
+## Local
 
 ```bash
 cd ~/Desktop/noir-atelier
-python3 -m http.server 5173
+python3 -m http.server 8765
 ```
 
-[http://localhost:5173](http://localhost:5173)
+Open http://localhost:8765
 
-Hard-Reload: `Cmd+Shift+R`
+## Live
 
-## Inhalt
-
-- Logo
-- „Coming soon“
-- eine Zeile
-- Mail: `hello@noiratelier.studio`
-- Impressum / Datenschutz (Platzhalter)
+Deployed via Vercel from this repo (domain: noir-atelier.com).
