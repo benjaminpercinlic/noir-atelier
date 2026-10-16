@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "cnc.noir-atelier.com" }],
+      "destination": "/cnc/:path*"
+    }
+  ]
+}
