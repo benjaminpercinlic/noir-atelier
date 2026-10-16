@@ -46,17 +46,13 @@
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--gold); cursor: pointer; }
     .hint { margin-top: 10px; font-size: 10px; color: var(--muted); }
     .specs {
-      position: fixed; z-index: 2; bottom: 24px; right: 24px; width: min(300px, calc(100vw - 48px));
-      max-height: calc(100vh - 120px); overflow-y: auto;
+      position: fixed; z-index: 2; bottom: 24px; right: 24px; width: min(260px, calc(100vw - 48px));
       padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); font-size: 11px; line-height: 1.5; color: #b8b2a6;
     }
     .specs h2 { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 500; color: var(--gold); margin-bottom: 6px; }
-    .specs h3 { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); margin: 12px 0 4px; font-weight: 400; }
-    .specs h3:first-of-type { margin-top: 4px; }
     .specs li { list-style: none; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
     .specs li:last-child { border-bottom: 0; }
     .specs em { font-style: normal; color: var(--text); }
-    .specs .note { margin-top: 10px; font-size: 10px; color: var(--muted); line-height: 1.45; }
     .parts {
       position: fixed; z-index: 2; top: 88px; right: 24px; width: min(220px, calc(100vw - 48px));
       padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); font-size: 11px; line-height: 1.45; color: #b8b2a6;
@@ -83,9 +79,9 @@
   </header>
 
   <aside class="panel">
-    <div class="tag">Supplier brief · CNC</div>
+    <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Interactive reference for machining. No latch flap. Shallow rectangular recesses top &amp; bottom for design inserts. Scope: metal shell only — lining, cards &amp; fan mechanism by client.</p>
+    <p>Metal shell for manufacturer review — no latch flap. Shallow rectangular recesses top &amp; bottom for the design insert.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -109,41 +105,15 @@
   </aside>
 
   <aside class="specs">
-    <h2>Supplier brief</h2>
-
-    <h3>Materials</h3>
-    <ul>
-      <li><em>1st sample</em> Aluminum (CNC)</li>
-      <li><em>Then</em> Stainless steel</li>
-      <li><em>Finish</em> TBD after Al sample</li>
-    </ul>
-
-    <h3>Dimensions (mm)</h3>
+    <h2>Specs (mm)</h2>
     <ul>
       <li><em>Outer</em> 94 × 60 × ~8.5</li>
       <li><em>Base H</em> 4.4</li>
       <li><em>Lid H</em> 4.0</li>
       <li><em>Recess</em> 88 × 54 × 0.35 deep</li>
-      <li><em>Corner R</em> ~1.8</li>
+      <li><em>Radius</em> ~1.8</li>
       <li><em>Units</em> model = mm</li>
     </ul>
-
-    <h3>Tolerances</h3>
-    <ul>
-      <li><em>Overall</em> —</li>
-      <li><em>Mating faces</em> —</li>
-      <li><em>Recess depth</em> —</li>
-      <li><em>Hinge bore</em> —</li>
-    </ul>
-
-    <h3>Deliverables</h3>
-    <ul>
-      <li><em>Qty sample</em> 1–2 pcs aluminum</li>
-      <li><em>Include</em> base + lid + hinge</li>
-      <li><em>Exclude</em> latch, lining, mechanism</li>
-    </ul>
-
-    <p class="note">Quote aluminum sample first, then stainless. Tolerances to be confirmed.</p>
   </aside>
 
   <script type="importmap">
