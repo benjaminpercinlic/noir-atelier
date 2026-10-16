@@ -66,7 +66,7 @@
   <aside class="panel">
     <div class="tag">Microfiber · Gold-Foil</div>
     <h1>N°01</h1>
-    <p>Manual thumb-fan — open the lid, push from the knurled metal grip on the left inner wall. Top card drives; lower cards follow. No auto mechanism.</p>
+    <p>Manual thumb-fan — three black card cradles; the top cradle has a rough grip surface so you push there to fan. Lower cradles follow. No auto mechanism.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnFan">Fan</button>
@@ -92,8 +92,8 @@
       <li><em>Lining</em> textured microfiber</li>
       <li><em>Mark</em> wordmark only</li>
       <li><em>Clip</em> slim, left</li>
-      <li><em>Fan</em> knurl on left metal wall</li>
-      <li><em>Stack</em> lower cards follow</li>
+      <li><em>Fan</em> rough top cradle only</li>
+      <li><em>Stack</em> lower cradles follow</li>
     </ul>
   </aside>
 
@@ -741,20 +741,21 @@ const pivotPin = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 3.6, 20), m
 pivotPin.position.y = 1.5;
 fanPivot.add(pivotPin);
 
-const matThumb = new THREE.MeshPhysicalMaterial({
-  color: 0x4a4e58, metalness: 0.95, roughness: 0.55, envMapIntensity: 0.35,
+const matThumb = new THREE.MeshStandardMaterial({
+  color: 0x1a1c20, roughness: 1, metalness: 0.25,
 });
 const matThumbRidge = new THREE.MeshStandardMaterial({
-  color: 0x2e323a, roughness: 0.95, metalness: 0.4,
+  color: 0x0e1014, roughness: 1, metalness: 0.15,
 });
 
 function makeClip(index) {
   const g = new THREE.Group();
+  const isTop = index === N - 1;
   const back = box(1.15, 1.65, CD * 0.5, matClip);
   back.position.set(0.2, 0.72, CD * 0.18);
   const bottom = box(CW * 0.28, 0.32, CD * 0.5, matClip);
   bottom.position.set(CW * 0.12, 0.12, CD * 0.18);
-  const top = box(CW * 0.12, 0.28, CD * 0.5, matClip);
+  const top = box(CW * 0.12, 0.28, CD * 0.5, isTop ? matThumb : matClip);
   top.position.set(CW * 0.05, 1.35, CD * 0.18);
   const edge = box(0.15, 1.65, CD * 0.5, matClipEdge);
   edge.position.set(0.75, 0.72, CD * 0.18);
@@ -762,11 +763,24 @@ function makeClip(index) {
   flockB.position.set(0.55, 0.72, CD * 0.18);
   const flockBot = box(CW * 0.24, 0.12, CD * 0.46, matFlock);
   flockBot.position.set(CW * 0.12, 0.32, CD * 0.18);
-  // stop pin — couples stack so lower cards follow the top
+  // stop pin — couples stack so lower cradles follow the top
   const stop = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.6, 10), matClip);
   stop.rotation.z = Math.PI / 2;
   stop.position.set(-0.6, 0.7, -1.8 - index * 0.8);
   g.add(back, bottom, top, edge, flockB, flockBot, stop);
+
+  // Rough grip only on the uppermost black cradle (where you push to fan)
+  if (isTop) {
+    const gripLen = CD * 0.42;
+    const grip = box(CW * 0.22, 0.14, gripLen, matThumb);
+    grip.position.set(CW * 0.1, 1.55, CD * 0.18);
+    g.add(grip);
+    for (let r = 0; r < 8; r++) {
+      const ridge = box(CW * 0.2, 0.1, 0.7, matThumbRidge);
+      ridge.position.set(CW * 0.1, 1.62, CD * 0.18 - gripLen * 0.4 + r * (gripLen * 0.11));
+      g.add(ridge);
+    }
+  }
   return g;
 }
 
@@ -803,19 +817,7 @@ const stopWall = box(1.2, 2.8, 8, matClipEdge);
 stopWall.position.set(-W / 2 + 4.5, BASE_H + 0.5, -D / 2 + 18);
 base.add(stopWall);
 
-// Thumb knurl — milled into LEFT inner metal rail beside cards (not on the card)
-const thumbGrip = new THREE.Group();
-thumbGrip.position.set(-W / 2 + 4.2, BASE_H + 1.35, 6);
-const thumbPad = box(1.35, 2.6, 18, matThumb);
-thumbGrip.add(thumbPad);
-for (let r = 0; r < 10; r++) {
-  const ridge = box(0.4, 2.2, 1.2, matThumbRidge);
-  ridge.position.set(0.55, 0, -7.2 + r * 1.6);
-  thumbGrip.add(ridge);
-}
-base.add(thumbGrip);
-
-const shellParts = [baseShell, lidShell, stepLip, latchBtn, frontClear, thumbPad];
+const shellParts = [baseShell, lidShell, stepLip, latchBtn, frontClear];
 const faceParts = [lidFace];
 
 function easeInOut(t) {

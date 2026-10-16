@@ -41,7 +41,8 @@
       padding: 9px 11px; cursor: pointer;
     }
     button:hover, button.on { border-color: var(--gold); color: var(--gold); background: rgba(196,165,116,0.08); }
-    .row { display: grid; grid-template-columns: 72px 1fr 40px; gap: 8px; align-items: center; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .row { display: grid; grid-template-columns: 72px 1fr 40px; gap: 8px; align-items: center; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .row:last-of-type { margin-bottom: 0; }
     input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 2px; background: rgba(196,165,116,0.28); outline: none; }
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--gold); cursor: pointer; }
     .hint { margin-top: 10px; font-size: 10px; color: var(--muted); }
@@ -81,19 +82,24 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Metal shell — no latch flap. Recesses top &amp; bottom for inserts. Knurled thumb grip milled into the left inner wall (manual card fan).</p>
+    <p>Shell + 3 card cradles. Top cradle has a rough grip to thumb-fan; lower cradles follow on the pivot. No latch flap. Recesses top &amp; bottom for inserts.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
+      <button id="btnFan">Fan</button>
       <button id="btnExplode">Exploded</button>
-      <button id="btnGrip">Grip</button>
       <button id="btnView">View</button>
     </div>
     <div class="row">
-      <span>Open</span>
+      <span>Lid</span>
       <input id="open" type="range" min="0" max="100" value="0" />
       <span id="openLbl">0%</span>
     </div>
-    <div class="hint">Drag · Scroll · Space</div>
+    <div class="row">
+      <span>Fan</span>
+      <input id="fan" type="range" min="0" max="100" value="0" />
+      <span id="fanLbl">0%</span>
+    </div>
+    <div class="hint">Drag · Scroll · Space · F = fan</div>
   </aside>
 
   <aside class="parts">
@@ -101,7 +107,7 @@
     <label><input type="checkbox" data-part="base" checked /> Base shell</label>
     <label><input type="checkbox" data-part="lid" checked /> Lid shell</label>
     <label><input type="checkbox" data-part="wells" checked /> Recesses</label>
-    <label><input type="checkbox" data-part="grip" checked /> Thumb grip</label>
+    <label><input type="checkbox" data-part="cradles" checked /> Card cradles ×3</label>
     <label><input type="checkbox" data-part="hinge" checked /> Hinge</label>
     <label><input type="checkbox" data-part="lip" checked /> Step lip</label>
   </aside>
@@ -110,10 +116,9 @@
     <h2>Specs (mm)</h2>
     <ul>
       <li><em>Outer</em> 94 × 60 × ~8.5</li>
-      <li><em>Base H</em> 4.4</li>
-      <li><em>Lid H</em> 4.0</li>
-      <li><em>Recess</em> 88 × 54 × 0.35 deep</li>
-      <li><em>Thumb grip</em> left inner · knurl</li>
+      <li><em>Cradles</em> 3× stack on pivot</li>
+      <li><em>Top cradle</em> rough grip</li>
+      <li><em>Recess</em> 88 × 54 × 0.35</li>
       <li><em>Radius</em> ~1.8</li>
       <li><em>Units</em> model = mm</li>
     </ul>
@@ -140,9 +145,13 @@ const W = 94, D = 60;
 const BASE_H = 4.4;
 const LID_H = 4.0;
 const GAP = 0.12;
+const CW = 85.6, CD = 53.98;
+const N = 3;
 const WELL_INSET = 3.0;
 const WELL_DEPTH = 0.35;
 const LID_MAX = THREE.MathUtils.degToRad(98);
+const FAN_STEP = THREE.MathUtils.degToRad(8.2);
+const FAN_LIFT = 0.55;
 const EXPLODE_Y = 14;
 
 const canvas = document.getElementById('c');
@@ -201,12 +210,12 @@ const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.5, 60
 const views = {
   hero: { pos: [68, 58, 92], target: [0, 7, 2] },
   open: { pos: [55, 72, 85], target: [0, 12, 0] },
-  grip: { pos: [-40, 58, 65], target: [-32, 9, 6] }, // left inner thumb knurl
+  fan:  { pos: [30, 80, 70], target: [-8, 10, 4] },
   top:  { pos: [0, 120, 8], target: [0, 6, 0] },
   bottom: { pos: [15, -70, 50], target: [0, 4, 0] },
   side: { pos: [130, 28, 0], target: [0, 8, 0] },
 };
-const viewKeys = ['hero', 'open', 'grip', 'top', 'bottom', 'side'];
+const viewKeys = ['hero', 'open', 'fan', 'top', 'bottom', 'side'];
 camera.position.fromArray(views.hero.pos);
 
 const controls = new OrbitControls(camera, canvas);
@@ -325,25 +334,6 @@ const cavityCut = rbox(W - 3.4, 1.5, D - 3.4, 1.1, new THREE.MeshPhysicalMateria
 cavityCut.position.y = BASE_H - 0.5;
 base.add(cavityCut);
 
-// Thumb knurl — CNC feature on LEFT inner wall (manual fan push zone)
-const matGrip = new THREE.MeshPhysicalMaterial({
-  color: 0x8a909c, metalness: 1, roughness: 0.4, envMapIntensity: 0.45,
-});
-const matGripRidge = new THREE.MeshPhysicalMaterial({
-  color: 0x5a606c, metalness: 0.95, roughness: 0.65, envMapIntensity: 0.3,
-});
-const thumbGrip = new THREE.Group();
-thumbGrip.position.set(-W / 2 + 4.2, BASE_H + 1.35, 6);
-const thumbPad = box(1.35, 2.6, 18, matGrip);
-thumbGrip.add(thumbPad);
-for (let r = 0; r < 10; r++) {
-  const ridge = box(0.5, 2.2, 1.2, matGripRidge);
-  ridge.position.set(0.58, 0, -7.2 + r * 1.6);
-  thumbGrip.add(ridge);
-}
-base.add(thumbGrip);
-parts.grip = thumbGrip;
-
 const hingeZ = -D / 2 + 1.4;
 const hingeY = BASE_H;
 
@@ -388,39 +378,135 @@ const stepLip = box(W - 10, 1.2, 3.0, matSteel);
 stepLip.position.set(0, -LID_H / 2 + 0.3, D / 2 - 2.2);
 lid.add(stepLip);
 parts.lip = stepLip;
+parts.wells = { visible: true };
 
-parts.wells = { visible: true }; // toggle via wellMeshes
+// ── CARD CRADLES (CNC — black holders, top one rough) ──────
+const matClip = new THREE.MeshPhysicalMaterial({
+  color: 0x2a2c32, metalness: 0.9, roughness: 0.4, envMapIntensity: 0.45,
+});
+const matClipEdge = new THREE.MeshPhysicalMaterial({
+  color: 0x7a808a, metalness: 1, roughness: 0.28, envMapIntensity: 0.55,
+});
+const matThumb = new THREE.MeshStandardMaterial({ color: 0x1a1c20, roughness: 1, metalness: 0.25 });
+const matThumbRidge = new THREE.MeshStandardMaterial({ color: 0x0e1014, roughness: 1, metalness: 0.15 });
+const matGold = new THREE.MeshPhysicalMaterial({
+  color: 0xc4a574, metalness: 1, roughness: 0.42, envMapIntensity: 0.4,
+});
+
+const cradlesRoot = new THREE.Group();
+base.add(cradlesRoot);
+parts.cradles = cradlesRoot;
+
+const fanPivot = new THREE.Group();
+fanPivot.position.set(-W / 2 + 6.5, BASE_H - 0.85, -D / 2 + 7.5);
+cradlesRoot.add(fanPivot);
+
+const pivotPin = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 3.6, 20), matGold);
+pivotPin.position.y = 1.5;
+fanPivot.add(pivotPin);
+
+function makeClip(index) {
+  const g = new THREE.Group();
+  const isTop = index === N - 1;
+  const back = box(1.15, 1.65, CD * 0.5, matClip);
+  back.position.set(0.2, 0.72, CD * 0.18);
+  const bottom = box(CW * 0.28, 0.32, CD * 0.5, matClip);
+  bottom.position.set(CW * 0.12, 0.12, CD * 0.18);
+  const top = box(CW * 0.12, 0.28, CD * 0.5, isTop ? matThumb : matClip);
+  top.position.set(CW * 0.05, 1.35, CD * 0.18);
+  const edge = box(0.15, 1.65, CD * 0.5, matClipEdge);
+  edge.position.set(0.75, 0.72, CD * 0.18);
+  const stop = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.6, 10), matClip);
+  stop.rotation.z = Math.PI / 2;
+  stop.position.set(-0.6, 0.7, -1.8 - index * 0.8);
+  g.add(back, bottom, top, edge, stop);
+  if (isTop) {
+    const gripLen = CD * 0.42;
+    const grip = box(CW * 0.22, 0.14, gripLen, matThumb);
+    grip.position.set(CW * 0.1, 1.55, CD * 0.18);
+    g.add(grip);
+    for (let r = 0; r < 8; r++) {
+      const ridge = box(CW * 0.2, 0.1, 0.7, matThumbRidge);
+      ridge.position.set(CW * 0.1, 1.62, CD * 0.18 - gripLen * 0.4 + r * (gripLen * 0.11));
+      g.add(ridge);
+    }
+  }
+  return g;
+}
+
+const cradles = [];
+for (let i = 0; i < N; i++) {
+  const g = new THREE.Group();
+  g.add(makeClip(i));
+  g.position.y = i * 0.62;
+  fanPivot.add(g);
+  cradles.push({ group: g, baseY: i * 0.62, index: i });
+}
+
+const stopWall = box(1.2, 2.8, 8, matClipEdge);
+stopWall.position.set(-W / 2 + 4.5, BASE_H + 0.5, -D / 2 + 18);
+cradlesRoot.add(stopWall);
 
 // ── UI ─────────────────────────────────────────────────────
 function easeInOut(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
+function smooth01(t) {
+  t = THREE.MathUtils.clamp(t, 0, 1);
+  return t * t * (3 - 2 * t);
+}
 
-let openT = 0, target = 0, animating = false;
+let openT = 0, targetOpen = 0, animOpen = false;
+let fanT = 0, targetFan = 0, animFan = false;
 let explode = false, explodeT = 0, viewIdx = 0;
 
 const openEl = document.getElementById('open');
 const openLbl = document.getElementById('openLbl');
+const fanEl = document.getElementById('fan');
+const fanLbl = document.getElementById('fanLbl');
 const btnOpen = document.getElementById('btnOpen');
+const btnFan = document.getElementById('btnFan');
 const btnExplode = document.getElementById('btnExplode');
-const btnGrip = document.getElementById('btnGrip');
 const btnView = document.getElementById('btnView');
 
-function pose(t) {
-  const lidT = easeInOut(t);
-  lidPivot.rotation.x = -lidT * LID_MAX;
+function pose() {
+  const lidE = easeInOut(openT);
+  const fanE = easeInOut(fanT);
+  lidPivot.rotation.x = -lidE * LID_MAX;
 
   const e = easeInOut(explodeT);
   lid.position.y = LID_H / 2 + GAP + e * EXPLODE_Y;
   hinge.position.y = hingeY + e * (EXPLODE_Y * 0.45);
+  cradlesRoot.position.y = e * (EXPLODE_Y * 0.25);
 
-  openEl.value = String(Math.round(t * 100));
-  openLbl.textContent = `${Math.round(t * 100)}%`;
-  btnOpen.textContent = t > 0.5 ? 'Close' : 'Open';
-  btnOpen.classList.toggle('on', t > 0.12);
+  for (const c of cradles) {
+    const k = c.index;
+    const lag = (N - 1 - k) * 0.07;
+    const follow = smooth01(THREE.MathUtils.clamp((fanE - lag) / (1 - lag * 0.5), 0, 1));
+    const spread = follow * FAN_STEP * k;
+    c.group.rotation.y = -spread;
+    c.group.position.set(
+      Math.sin(spread) * 1.2,
+      c.baseY + follow * FAN_LIFT * (0.2 + k * 0.18),
+      (1 - Math.cos(spread)) * 2.4
+    );
+  }
+
+  openEl.value = String(Math.round(openT * 100));
+  openLbl.textContent = `${Math.round(openT * 100)}%`;
+  fanEl.value = String(Math.round(fanT * 100));
+  fanLbl.textContent = `${Math.round(fanT * 100)}%`;
+  btnOpen.textContent = openT > 0.5 ? 'Close' : 'Open';
+  btnOpen.classList.toggle('on', openT > 0.12);
+  btnFan.classList.toggle('on', fanT > 0.12);
 }
 
-function go(v) { target = THREE.MathUtils.clamp(v, 0, 1); animating = true; }
+function goOpen(v) { targetOpen = THREE.MathUtils.clamp(v, 0, 1); animOpen = true; }
+function goFan(v) {
+  targetFan = THREE.MathUtils.clamp(v, 0, 1);
+  animFan = true;
+  if (targetFan > 0.05 && openT < 0.55) goOpen(1);
+}
 function setView(name) {
   const v = views[name];
   if (!v) return;
@@ -428,31 +514,33 @@ function setView(name) {
   controls.target.fromArray(v.target);
 }
 
-btnOpen.onclick = () => go(target > 0.5 ? 0 : 1);
+btnOpen.onclick = () => goOpen(targetOpen > 0.5 ? 0 : 1);
+btnFan.onclick = () => goFan(targetFan > 0.5 ? 0 : 1);
 btnExplode.onclick = () => {
   explode = !explode;
   btnExplode.classList.toggle('on', explode);
-  if (explode) go(Math.max(openT, 0.65));
-};
-btnGrip.onclick = () => {
-  go(1);
-  setView('grip');
-  btnGrip.classList.add('on');
-  viewIdx = viewKeys.indexOf('grip');
+  if (explode) goOpen(Math.max(openT, 0.65));
 };
 btnView.onclick = () => {
   viewIdx = (viewIdx + 1) % viewKeys.length;
   setView(viewKeys[viewIdx]);
-  btnGrip.classList.toggle('on', viewKeys[viewIdx] === 'grip');
-  if (viewKeys[viewIdx] === 'open' || viewKeys[viewIdx] === 'grip') go(1);
-  if (viewKeys[viewIdx] === 'bottom') go(0);
+  if (viewKeys[viewIdx] === 'open') goOpen(1);
+  if (viewKeys[viewIdx] === 'fan') { goOpen(1); goFan(1); }
+  if (viewKeys[viewIdx] === 'bottom') goOpen(0);
 };
 
 openEl.oninput = () => {
-  animating = false;
+  animOpen = false;
   openT = +openEl.value / 100;
-  target = openT;
-  pose(openT);
+  targetOpen = openT;
+  pose();
+};
+fanEl.oninput = () => {
+  animFan = false;
+  fanT = +fanEl.value / 100;
+  targetFan = fanT;
+  if (fanT > 0.02 && openT < 0.4) { openT = 0.85; targetOpen = 0.85; }
+  pose();
 };
 
 document.querySelectorAll('.parts input').forEach((el) => {
@@ -467,7 +555,8 @@ document.querySelectorAll('.parts input').forEach((el) => {
 });
 
 addEventListener('keydown', (e) => {
-  if (e.code === 'Space') { e.preventDefault(); go(target > 0.5 ? 0 : 1); }
+  if (e.code === 'Space') { e.preventDefault(); goOpen(targetOpen > 0.5 ? 0 : 1); }
+  if (e.code === 'KeyF') { e.preventDefault(); goFan(targetFan > 0.5 ? 0 : 1); }
 });
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
@@ -475,21 +564,26 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-pose(0);
-setTimeout(() => { go(1); setView('grip'); btnGrip.classList.add('on'); }, 700);
+pose();
+setTimeout(() => { goOpen(1); goFan(1); setView('fan'); }, 700);
 
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.033, (now - last) / 1000);
   last = now;
-  if (animating) {
-    const k = target > openT ? 5.8 : 4.6;
-    openT += (target - openT) * Math.min(1, dt * k);
-    if (Math.abs(target - openT) < 0.0005) { openT = target; animating = false; }
+  if (animOpen) {
+    const k = targetOpen > openT ? 5.8 : 4.6;
+    openT += (targetOpen - openT) * Math.min(1, dt * k);
+    if (Math.abs(targetOpen - openT) < 0.0005) { openT = targetOpen; animOpen = false; }
   }
-  const expTarget = explode ? 1 : 0;
-  explodeT += (expTarget - explodeT) * Math.min(1, dt * 4.2);
-  pose(openT);
+  if (animFan) {
+    const k = targetFan > fanT ? 5.2 : 4.4;
+    fanT += (targetFan - fanT) * Math.min(1, dt * k);
+    if (Math.abs(targetFan - fanT) < 0.0005) { fanT = targetFan; animFan = false; }
+  }
+  explodeT += ((explode ? 1 : 0) - explodeT) * Math.min(1, dt * 4.2);
+  if (animOpen || animFan || Math.abs(explodeT - (explode ? 1 : 0)) > 0.001) pose();
+  else pose();
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
