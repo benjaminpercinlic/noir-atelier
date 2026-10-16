@@ -91,9 +91,10 @@
     <ul>
       <li><em>Lining</em> textured microfiber</li>
       <li><em>Mark</em> wordmark only</li>
-      <li><em>Clip</em> slim, left</li>
-      <li><em>Fan</em> rough top cradle only</li>
-      <li><em>Stack</em> lower cradles follow</li>
+      <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
+      <li><em>Card</em> 85.6 × 54.0 (ISO)</li>
+      <li><em>Margin</em> 3.2 L/R equal</li>
+      <li><em>Fan</em> rough top cradle</li>
     </ul>
   </aside>
 
@@ -113,12 +114,18 @@ const errEl = document.getElementById('err');
 addEventListener('error', () => errEl.classList.add('show'));
 addEventListener('unhandledrejection', () => errEl.classList.add('show'));
 
-const W = 94, D = 60;
+// ISO/IEC 7810 ID-1 card · equal side margins left/right
+const CW = 85.6, CD = 53.98, CT = 0.76;
+const SIDE = 3.2; // mm card edge → outer wall (same L/R)
+const W = CW + SIDE * 2; // 92.0
+const D = CD + SIDE * 2; // 60.38
 const BASE_H = 4.4;
 const LID_H = 4.0;
 const GAP = 0.12;
-const CW = 85.6, CD = 53.98, CT = 0.76;
 const N = 3;
+// Fan pivot so the card pack is centered in the shell
+const FAN_X = 0.5 - CW / 2;
+const FAN_Z = 2.5 - CD / 2;
 const LID_MAX = THREE.MathUtils.degToRad(98); // open so fabric wall faces viewer
 const FAN_STEP = THREE.MathUtils.degToRad(8.2); // thumb-fan spread
 const FAN_LIFT = 0.55; // slight rise as cards fan out
@@ -734,7 +741,7 @@ lidInterior.add(moneyClip);
 
 // ── FAN (manual thumb) — no auto drive / dog / sector ──────
 const fanPivot = new THREE.Group();
-fanPivot.position.set(-W / 2 + 6.5, BASE_H - 0.85, -D / 2 + 7.5);
+fanPivot.position.set(FAN_X, BASE_H - 0.85, FAN_Z);
 base.add(fanPivot);
 
 const pivotPin = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 3.6, 20), matGold);
@@ -799,7 +806,7 @@ for (let i = 0; i < N; i++) {
 }
 
 const stopWall = box(1.2, 2.8, 8, matClipEdge);
-stopWall.position.set(-W / 2 + 4.5, BASE_H + 0.5, -D / 2 + 18);
+stopWall.position.set(FAN_X - 2, BASE_H + 0.5, FAN_Z + 10.5);
 base.add(stopWall);
 
 const shellParts = [baseShell, lidShell, stepLip, latchBtn, frontClear];

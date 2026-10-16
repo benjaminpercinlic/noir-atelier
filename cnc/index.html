@@ -115,12 +115,15 @@
   <aside class="specs">
     <h2>Specs (mm)</h2>
     <ul>
-      <li><em>Outer</em> 94 × 60 × ~8.5</li>
-      <li><em>Cradles</em> 3× stack on pivot</li>
+      <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
+      <li><em>Card (ISO)</em> 85.60 × 53.98</li>
+      <li><em>Side margin</em> 3.2 L = R</li>
+      <li><em>Base H</em> 4.4 · <em>Lid H</em> 4.0</li>
+      <li><em>Recess</em> 86.0 × 54.4 × 0.35</li>
+      <li><em>Cradles</em> 3× on pivot</li>
       <li><em>Top cradle</em> rough grip</li>
-      <li><em>Recess</em> 88 × 54 × 0.35</li>
-      <li><em>Radius</em> ~1.8</li>
-      <li><em>Units</em> model = mm</li>
+      <li><em>Corner R</em> ~1.8</li>
+      <li><em>Units</em> mm</li>
     </ul>
   </aside>
 
@@ -141,12 +144,16 @@ const errEl = document.getElementById('err');
 addEventListener('error', () => errEl.classList.add('show'));
 addEventListener('unhandledrejection', () => errEl.classList.add('show'));
 
-const W = 94, D = 60;
+const CW = 85.6, CD = 53.98;
+const SIDE = 3.2;
+const W = CW + SIDE * 2; // 92.0 — equal L/R margin around ISO card
+const D = CD + SIDE * 2; // 60.38
 const BASE_H = 4.4;
 const LID_H = 4.0;
 const GAP = 0.12;
-const CW = 85.6, CD = 53.98;
 const N = 3;
+const FAN_X = 0.5 - CW / 2;
+const FAN_Z = 2.5 - CD / 2;
 const WELL_INSET = 3.0;
 const WELL_DEPTH = 0.35;
 const LID_MAX = THREE.MathUtils.degToRad(98);
@@ -397,7 +404,7 @@ base.add(cradlesRoot);
 parts.cradles = cradlesRoot;
 
 const fanPivot = new THREE.Group();
-fanPivot.position.set(-W / 2 + 6.5, BASE_H - 0.85, -D / 2 + 7.5);
+fanPivot.position.set(FAN_X, BASE_H - 0.85, FAN_Z);
 cradlesRoot.add(fanPivot);
 
 const pivotPin = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 3.6, 20), matGold);
@@ -433,7 +440,7 @@ for (let i = 0; i < N; i++) {
 }
 
 const stopWall = box(1.2, 2.8, 8, matClipEdge);
-stopWall.position.set(-W / 2 + 4.5, BASE_H + 0.5, -D / 2 + 18);
+stopWall.position.set(FAN_X - 2, BASE_H + 0.5, FAN_Z + 10.5);
 cradlesRoot.add(stopWall);
 
 // ── UI ─────────────────────────────────────────────────────
