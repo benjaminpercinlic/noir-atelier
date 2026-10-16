@@ -81,10 +81,11 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Metal shell for manufacturer review — no latch flap. Shallow rectangular recesses top &amp; bottom for the design insert.</p>
+    <p>Metal shell — no latch flap. Recesses top &amp; bottom for inserts. Knurled thumb grip milled into the left inner wall (manual card fan).</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
+      <button id="btnGrip">Grip</button>
       <button id="btnView">View</button>
     </div>
     <div class="row">
@@ -100,6 +101,7 @@
     <label><input type="checkbox" data-part="base" checked /> Base shell</label>
     <label><input type="checkbox" data-part="lid" checked /> Lid shell</label>
     <label><input type="checkbox" data-part="wells" checked /> Recesses</label>
+    <label><input type="checkbox" data-part="grip" checked /> Thumb grip</label>
     <label><input type="checkbox" data-part="hinge" checked /> Hinge</label>
     <label><input type="checkbox" data-part="lip" checked /> Step lip</label>
   </aside>
@@ -111,6 +113,7 @@
       <li><em>Base H</em> 4.4</li>
       <li><em>Lid H</em> 4.0</li>
       <li><em>Recess</em> 88 × 54 × 0.35 deep</li>
+      <li><em>Thumb grip</em> left inner · knurl</li>
       <li><em>Radius</em> ~1.8</li>
       <li><em>Units</em> model = mm</li>
     </ul>
@@ -198,11 +201,12 @@ const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.5, 60
 const views = {
   hero: { pos: [68, 58, 92], target: [0, 7, 2] },
   open: { pos: [55, 72, 85], target: [0, 12, 0] },
+  grip: { pos: [-40, 58, 65], target: [-32, 9, 6] }, // left inner thumb knurl
   top:  { pos: [0, 120, 8], target: [0, 6, 0] },
   bottom: { pos: [15, -70, 50], target: [0, 4, 0] },
   side: { pos: [130, 28, 0], target: [0, 8, 0] },
 };
-const viewKeys = ['hero', 'open', 'top', 'bottom', 'side'];
+const viewKeys = ['hero', 'open', 'grip', 'top', 'bottom', 'side'];
 camera.position.fromArray(views.hero.pos);
 
 const controls = new OrbitControls(camera, canvas);
@@ -321,6 +325,25 @@ const cavityCut = rbox(W - 3.4, 1.5, D - 3.4, 1.1, new THREE.MeshPhysicalMateria
 cavityCut.position.y = BASE_H - 0.5;
 base.add(cavityCut);
 
+// Thumb knurl — CNC feature on LEFT inner wall (manual fan push zone)
+const matGrip = new THREE.MeshPhysicalMaterial({
+  color: 0x8a909c, metalness: 1, roughness: 0.4, envMapIntensity: 0.45,
+});
+const matGripRidge = new THREE.MeshPhysicalMaterial({
+  color: 0x5a606c, metalness: 0.95, roughness: 0.65, envMapIntensity: 0.3,
+});
+const thumbGrip = new THREE.Group();
+thumbGrip.position.set(-W / 2 + 4.2, BASE_H + 1.35, 6);
+const thumbPad = box(1.35, 2.6, 18, matGrip);
+thumbGrip.add(thumbPad);
+for (let r = 0; r < 10; r++) {
+  const ridge = box(0.5, 2.2, 1.2, matGripRidge);
+  ridge.position.set(0.58, 0, -7.2 + r * 1.6);
+  thumbGrip.add(ridge);
+}
+base.add(thumbGrip);
+parts.grip = thumbGrip;
+
 const hingeZ = -D / 2 + 1.4;
 const hingeY = BASE_H;
 
@@ -380,6 +403,7 @@ const openEl = document.getElementById('open');
 const openLbl = document.getElementById('openLbl');
 const btnOpen = document.getElementById('btnOpen');
 const btnExplode = document.getElementById('btnExplode');
+const btnGrip = document.getElementById('btnGrip');
 const btnView = document.getElementById('btnView');
 
 function pose(t) {
@@ -410,10 +434,17 @@ btnExplode.onclick = () => {
   btnExplode.classList.toggle('on', explode);
   if (explode) go(Math.max(openT, 0.65));
 };
+btnGrip.onclick = () => {
+  go(1);
+  setView('grip');
+  btnGrip.classList.add('on');
+  viewIdx = viewKeys.indexOf('grip');
+};
 btnView.onclick = () => {
   viewIdx = (viewIdx + 1) % viewKeys.length;
   setView(viewKeys[viewIdx]);
-  if (viewKeys[viewIdx] === 'open') go(1);
+  btnGrip.classList.toggle('on', viewKeys[viewIdx] === 'grip');
+  if (viewKeys[viewIdx] === 'open' || viewKeys[viewIdx] === 'grip') go(1);
   if (viewKeys[viewIdx] === 'bottom') go(0);
 };
 
@@ -445,7 +476,7 @@ addEventListener('resize', () => {
 });
 
 pose(0);
-setTimeout(() => { go(1); setView('open'); }, 700);
+setTimeout(() => { go(1); setView('grip'); btnGrip.classList.add('on'); }, 700);
 
 let last = performance.now();
 function frame(now) {
