@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NOIR ATELIER — Gehäuse CNC</title>
-  <meta name="description" content="N°01 Metallgehäuse — CNC-Review. Nur Shell: Base, Deckel, Scharnier, Latch." />
+  <meta name="description" content="N°01 Metallgehäuse — CNC/Guss-Review. Shell mit Design-Mulden oben & unten." />
   <meta name="robots" content="noindex, nofollow" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Outfit:wght@300;400;500&display=swap');
@@ -27,13 +27,13 @@
     .badge { text-align: right; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
     .badge strong { display: block; margin-top: 4px; font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; letter-spacing: 0.08em; color: var(--text); text-transform: none; }
     .panel {
-      position: fixed; z-index: 2; bottom: 24px; left: 24px; width: min(380px, calc(100vw - 48px));
+      position: fixed; z-index: 2; bottom: 24px; left: 24px; width: min(400px, calc(100vw - 48px));
       padding: 18px 20px; background: var(--panel); border: 1px solid var(--line);
       backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     }
     .tag { color: var(--gold); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; margin-bottom: 8px; }
     h1 { font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: 22px; margin-bottom: 6px; }
-    .panel p { font-size: 12px; line-height: 1.5; color: #b8b2a6; font-weight: 300; margin-bottom: 12px; }
+    .panel p { font-size: 12px; line-height: 1.55; color: #b8b2a6; font-weight: 300; margin-bottom: 12px; }
     .controls { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
     button {
       border: 1px solid var(--line); background: transparent; color: var(--text);
@@ -44,9 +44,9 @@
     .row { display: grid; grid-template-columns: 72px 1fr 40px; gap: 8px; align-items: center; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
     input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 2px; background: rgba(196,165,116,0.28); outline: none; }
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--gold); cursor: pointer; }
-    .hint { margin-top: 10px; font-size: 10px; color: var(--muted); }
+    .hint { margin-top: 10px; font-size: 10px; color: var(--muted); line-height: 1.45; }
     .specs {
-      position: fixed; z-index: 2; bottom: 24px; right: 24px; width: min(260px, calc(100vw - 48px));
+      position: fixed; z-index: 2; bottom: 24px; right: 24px; width: min(270px, calc(100vw - 48px));
       padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); font-size: 11px; line-height: 1.5; color: #b8b2a6;
     }
     .specs h2 { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 500; color: var(--gold); margin-bottom: 6px; }
@@ -54,7 +54,7 @@
     .specs li:last-child { border-bottom: 0; }
     .specs em { font-style: normal; color: var(--text); }
     .parts {
-      position: fixed; z-index: 2; top: 88px; right: 24px; width: min(220px, calc(100vw - 48px));
+      position: fixed; z-index: 2; top: 88px; right: 24px; width: min(230px, calc(100vw - 48px));
       padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); font-size: 11px; line-height: 1.45; color: #b8b2a6;
     }
     .parts h2 { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 500; color: var(--gold); margin-bottom: 8px; }
@@ -71,7 +71,7 @@
   <div class="err" id="err"><div><h1>3D-Ansicht fehlgeschlagen</h1><p>Bitte über den Live-Domain oder einen lokalen Server öffnen.</p></div></div>
 
   <header>
-    <div class="brand">NOIR ATELIER<span>Gehäuse · CNC Review</span></div>
+    <div class="brand">NOIR ATELIER<span>Gehäuse · CNC / Guss</span></div>
     <div class="badge">
       <a href="https://noir-atelier.com/">← Produktmodell</a>
       <strong>N°01 Shell</strong>
@@ -79,12 +79,17 @@
   </header>
 
   <aside class="panel">
-    <div class="tag">Metall · CNC</div>
-    <h1>Gehäuse only</h1>
-    <p>Nur die Metallteile für Fertigung: Base, Deckel, Scharnier, Latch. Kein Stoff, keine Karten, keine Mechanik-Innenbauteile.</p>
+    <div class="tag">Metall · Cast skin</div>
+    <h1>Gehäuse</h1>
+    <p>
+      Sexy Shell mit Design-Mulden oben &amp; unten (Inserts). Oberfläche = Guss-Haut, die du willst —
+      CNC fräst Form &amp; Taschen; Fan-Mechanik separat (nicht eine Fräsung „die fächert“).
+    </p>
     <div class="controls">
-      <button id="btnOpen" class="on">Open</button>
+      <button id="btnOpen">Open</button>
       <button id="btnExplode">Exploded</button>
+      <button id="btnFinish" class="on">Cast</button>
+      <button id="btnPockets">Fan pockets</button>
       <button id="btnView">View</button>
     </div>
     <div class="row">
@@ -92,27 +97,29 @@
       <input id="open" type="range" min="0" max="100" value="0" />
       <span id="openLbl">0%</span>
     </div>
-    <div class="hint">Drag · Scroll · Space</div>
+    <div class="hint">Drag · Scroll · Space · Cast = Oberfläche wie gegossen</div>
   </aside>
 
   <aside class="parts">
     <h2>Teile</h2>
     <label><input type="checkbox" data-part="base" checked /> Base shell</label>
     <label><input type="checkbox" data-part="lid" checked /> Lid shell</label>
+    <label><input type="checkbox" data-part="wells" checked /> Design-Mulden</label>
+    <label><input type="checkbox" data-part="inserts" checked /> Inserts (Ghost)</label>
     <label><input type="checkbox" data-part="hinge" checked /> Hinge</label>
     <label><input type="checkbox" data-part="latch" checked /> Latch</label>
-    <label><input type="checkbox" data-part="lip" checked /> Step lip</label>
+    <label><input type="checkbox" data-part="pockets" /> Fan pockets</label>
   </aside>
 
   <aside class="specs">
     <h2>Maße (mm)</h2>
     <ul>
-      <li><em>Außen</em> 94 × 60 × ~8.5</li>
-      <li><em>Base H</em> 4.4</li>
-      <li><em>Lid H</em> 4.0</li>
-      <li><em>Radius</em> ~1.8</li>
-      <li><em>Material</em> Stahl / Alu TBD</li>
-      <li><em>Einheit</em> Modell = mm</li>
+      <li><em>Außen</em> 94 × 60 × ~8.2</li>
+      <li><em>Mulde oben</em> 88 × 54 × 0.55 tief</li>
+      <li><em>Mulde unten</em> 88 × 54 × 0.55 tief</li>
+      <li><em>Rahmen</em> ~3 mm Rand</li>
+      <li><em>Finish</em> Guss → Satin</li>
+      <li><em>Fan</em> nur Taschen, Mechanik separat</li>
     </ul>
   </aside>
 
@@ -133,13 +140,14 @@ const errEl = document.getElementById('err');
 addEventListener('error', () => errEl.classList.add('show'));
 addEventListener('unhandledrejection', () => errEl.classList.add('show'));
 
-// Maße identisch zum Produktmodell — Einheit mm
 const W = 94, D = 60;
-const BASE_H = 4.4;
-const LID_H = 4.0;
-const GAP = 0.12;
+const BASE_H = 4.15;
+const LID_H = 3.9;
+const GAP = 0.1;
+const WELL_INSET = 3.0;   // Rahmenbreite um die Mulde
+const WELL_DEPTH = 0.55;  // Einkerbung für Design-Insert
 const LID_MAX = THREE.MathUtils.degToRad(98);
-const EXPLODE_Y = 14;
+const EXPLODE_Y = 16;
 
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({
@@ -150,206 +158,304 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.22;
+renderer.toneMappingExposure = 1.15;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-const BG = 0x0b0b0d;
-scene.background = new THREE.Color(BG);
-scene.fog = new THREE.Fog(0x0b0b0d, 120, 320);
+scene.background = new THREE.Color(0x0a0a0c);
+scene.fog = new THREE.Fog(0x0a0a0c, 110, 300);
 
 function makeDarkStudioEnv() {
   const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0x050506);
-  const g = new THREE.Mesh(
-    new THREE.PlaneGeometry(40, 40),
-    new THREE.MeshBasicMaterial({ color: 0x101012 })
-  );
-  g.rotation.x = -Math.PI / 2;
-  g.position.y = -2;
-  envScene.add(g);
-  const bounceL = new THREE.Mesh(
-    new THREE.PlaneGeometry(6, 10),
-    new THREE.MeshBasicMaterial({ color: 0x3a3834 })
-  );
-  bounceL.position.set(-10, 4, 0);
-  bounceL.rotation.y = Math.PI / 2;
-  envScene.add(bounceL);
-  const bounceR = new THREE.Mesh(
-    new THREE.PlaneGeometry(5, 8),
-    new THREE.MeshBasicMaterial({ color: 0x2e2c2a })
-  );
-  bounceR.position.set(10, 3, 2);
-  bounceR.rotation.y = -Math.PI / 2;
-  envScene.add(bounceR);
-  envScene.add(new THREE.Mesh(
-    new THREE.BoxGeometry(30, 20, 30),
-    new THREE.MeshBasicMaterial({ color: 0x121214, side: THREE.BackSide })
-  ));
+  envScene.background = new THREE.Color(0x040405);
+  const g = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial({ color: 0x121214 }));
+  g.rotation.x = -Math.PI / 2; g.position.y = -2; envScene.add(g);
+  const bounceL = new THREE.Mesh(new THREE.PlaneGeometry(6, 10), new THREE.MeshBasicMaterial({ color: 0x3a3834 }));
+  bounceL.position.set(-10, 4, 0); bounceL.rotation.y = Math.PI / 2; envScene.add(bounceL);
+  const bounceR = new THREE.Mesh(new THREE.PlaneGeometry(5, 8), new THREE.MeshBasicMaterial({ color: 0x2e2c2a }));
+  bounceR.position.set(10, 3, 2); bounceR.rotation.y = -Math.PI / 2; envScene.add(bounceR);
+  envScene.add(new THREE.Mesh(new THREE.BoxGeometry(30, 20, 30), new THREE.MeshBasicMaterial({ color: 0x101012, side: THREE.BackSide })));
   return envScene;
 }
-
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(makeDarkStudioEnv(), 0.08).texture;
-scene.environmentIntensity = 0.32;
+scene.environmentIntensity = 0.38;
 
-const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.5, 600);
+const camera = new THREE.PerspectiveCamera(28, innerWidth / innerHeight, 0.5, 600);
 const views = {
-  hero: { pos: [68, 58, 92], target: [0, 7, 2] },
-  open: { pos: [55, 72, 85], target: [0, 12, 0] },
-  top:  { pos: [0, 120, 8], target: [0, 6, 0] },
-  side: { pos: [130, 28, 0], target: [0, 8, 0] },
+  hero: { pos: [62, 48, 88], target: [0, 8, 2] },
+  open: { pos: [48, 68, 78], target: [0, 14, 0] },
+  top:  { pos: [0, 115, 6], target: [0, 7, 0] },
+  bottom:{ pos: [20, -75, 55], target: [0, 4, 0] },
+  side: { pos: [125, 22, 8], target: [0, 8, 0] },
 };
-const viewKeys = ['hero', 'open', 'top', 'side'];
+const viewKeys = ['hero', 'open', 'top', 'bottom', 'side'];
 camera.position.fromArray(views.hero.pos);
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.target.fromArray(views.hero.target);
-controls.minDistance = 55;
-controls.maxDistance = 240;
-controls.maxPolarAngle = Math.PI * 0.495;
+controls.minDistance = 50;
+controls.maxDistance = 230;
+controls.maxPolarAngle = Math.PI * 0.92;
 
-scene.add(new THREE.HemisphereLight(0xd0c8bc, 0x0a0a0c, 0.48));
-scene.add(new THREE.AmbientLight(0x2a2a30, 0.32));
+scene.add(new THREE.HemisphereLight(0xd8d0c4, 0x08080a, 0.4));
+scene.add(new THREE.AmbientLight(0x222228, 0.28));
 
-const spot = new THREE.SpotLight(0xfff7ef, 110, 300, Math.PI / 3.6, 0.72, 1.05);
-spot.position.set(28, 110, 55);
-spot.target.position.set(0, 7, 0);
-spot.castShadow = true;
-spot.shadow.mapSize.set(4096, 4096);
-spot.shadow.bias = -0.0001;
-spot.shadow.normalBias = 0.018;
-spot.shadow.radius = 4;
-scene.add(spot);
-scene.add(spot.target);
+const spot = new THREE.SpotLight(0xfff6ee, 100, 300, Math.PI / 3.5, 0.7, 1.05);
+spot.position.set(32, 105, 52); spot.target.position.set(0, 7, 0);
+spot.castShadow = true; spot.shadow.mapSize.set(4096, 4096);
+spot.shadow.bias = -0.0001; spot.shadow.normalBias = 0.016; spot.shadow.radius = 3.5;
+scene.add(spot); scene.add(spot.target);
 
-const spot2 = new THREE.SpotLight(0xfffaf4, 75, 260, Math.PI / 3.4, 0.75, 1.1);
-spot2.position.set(-40, 85, 45);
-spot2.target.position.set(0, 8, 2);
-scene.add(spot2);
-scene.add(spot2.target);
+const spot2 = new THREE.SpotLight(0xfffaf4, 68, 250, Math.PI / 3.3, 0.75, 1.1);
+spot2.position.set(-38, 80, 42); spot2.target.position.set(0, 8, 2);
+scene.add(spot2); scene.add(spot2.target);
 
-const fill = new THREE.SpotLight(0xf5efe4, 95, 220, Math.PI / 3.2, 0.68, 1.05);
-fill.position.set(0, 55, 95);
-fill.target.position.set(0, 8, 0);
-scene.add(fill);
-scene.add(fill.target);
+const fill = new THREE.SpotLight(0xf2ece2, 85, 210, Math.PI / 3.1, 0.66, 1.05);
+fill.position.set(0, 48, 92); fill.target.position.set(0, 8, 0);
+scene.add(fill); scene.add(fill.target);
 
-const rim = new THREE.DirectionalLight(0xb8c4d4, 0.55);
-rim.position.set(85, 40, -40);
-scene.add(rim);
-
-const back = new THREE.DirectionalLight(0x8a909c, 0.28);
-back.position.set(-60, 50, -80);
-scene.add(back);
+const rim = new THREE.DirectionalLight(0xc0cad8, 0.55);
+rim.position.set(80, 35, -45); scene.add(rim);
 
 const pool = new THREE.Mesh(
-  new THREE.CircleGeometry(56, 64),
-  new THREE.MeshBasicMaterial({ color: 0xd4c8b4, transparent: true, opacity: 0.085 })
+  new THREE.CircleGeometry(52, 64),
+  new THREE.MeshBasicMaterial({ color: 0xd4c8b4, transparent: true, opacity: 0.07 })
 );
-pool.rotation.x = -Math.PI / 2;
-pool.position.y = 2.35;
-scene.add(pool);
+pool.rotation.x = -Math.PI / 2; pool.position.y = 2.35; scene.add(pool);
 
 const floor = new THREE.Mesh(
   new THREE.CircleGeometry(280, 96),
-  new THREE.MeshStandardMaterial({ color: 0x121214, roughness: 0.92, metalness: 0.05, envMapIntensity: 0.12 })
+  new THREE.MeshStandardMaterial({ color: 0x101012, roughness: 0.94, metalness: 0.04 })
 );
-floor.rotation.x = -Math.PI / 2;
-floor.receiveShadow = true;
-scene.add(floor);
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
 
 const pedestal = new THREE.Mesh(
-  new THREE.CylinderGeometry(42, 46, 2.2, 80),
-  new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.88, metalness: 0.08, envMapIntensity: 0.15 })
+  new THREE.CylinderGeometry(40, 44, 2.0, 80),
+  new THREE.MeshStandardMaterial({ color: 0x131316, roughness: 0.9, metalness: 0.06 })
 );
-pedestal.position.y = 1.1;
-pedestal.receiveShadow = true;
-pedestal.castShadow = true;
+pedestal.position.y = 1.0; pedestal.receiveShadow = true; pedestal.castShadow = true;
 scene.add(pedestal);
 
-const matSteel = new THREE.MeshPhysicalMaterial({
-  color: 0xb8bcc6, metalness: 1, roughness: 0.38,
-  clearcoat: 0.14, clearcoatRoughness: 0.5, envMapIntensity: 0.42,
+// ── Materials: Cast skin (default) vs Machined ─────────────
+const matCast = new THREE.MeshPhysicalMaterial({
+  color: 0x1c1e24, metalness: 0.92, roughness: 0.48,
+  clearcoat: 0.22, clearcoatRoughness: 0.45,
+  reflectivity: 0.35, envMapIntensity: 0.55,
+});
+const matCastRim = new THREE.MeshPhysicalMaterial({
+  color: 0x8a909c, metalness: 1, roughness: 0.28,
+  clearcoat: 0.3, clearcoatRoughness: 0.35, envMapIntensity: 0.7,
+});
+const matWell = new THREE.MeshPhysicalMaterial({
+  color: 0x12141a, metalness: 0.85, roughness: 0.62,
+  envMapIntensity: 0.28,
+  polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+});
+const matInsert = new THREE.MeshPhysicalMaterial({
+  color: 0x0e0e12, metalness: 0.35, roughness: 0.42,
+  clearcoat: 0.55, clearcoatRoughness: 0.25,
+  transparent: true, opacity: 0.78, envMapIntensity: 0.35,
+  polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3,
+});
+const matInsertGold = new THREE.MeshPhysicalMaterial({
+  color: 0xc4a574, metalness: 1, roughness: 0.38,
+  clearcoat: 0.2, transparent: true, opacity: 0.9, envMapIntensity: 0.55,
+  polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+});
+const matMachined = new THREE.MeshPhysicalMaterial({
+  color: 0xb4b8c2, metalness: 1, roughness: 0.32,
+  clearcoat: 0.12, clearcoatRoughness: 0.5, envMapIntensity: 0.5,
 });
 const matLatch = new THREE.MeshPhysicalMaterial({
-  color: 0xa8adb8, metalness: 1, roughness: 0.34,
-  clearcoat: 0.16, envMapIntensity: 0.48,
+  color: 0x9aa1ae, metalness: 1, roughness: 0.3,
+  clearcoat: 0.25, envMapIntensity: 0.6,
 });
 const matHinge = new THREE.MeshPhysicalMaterial({
-  color: 0x9aa0aa, metalness: 1, roughness: 0.32,
-  clearcoat: 0.18, envMapIntensity: 0.5,
+  color: 0x7a808c, metalness: 1, roughness: 0.28,
+  clearcoat: 0.2, envMapIntensity: 0.55,
+});
+const matPocket = new THREE.MeshPhysicalMaterial({
+  color: 0x3a4050, metalness: 0.9, roughness: 0.4, envMapIntensity: 0.4,
+});
+const matInner = new THREE.MeshPhysicalMaterial({
+  color: 0x2a2e38, metalness: 0.88, roughness: 0.55, envMapIntensity: 0.3,
 });
 
+let castFinish = true;
+const shellMats = []; // { cast, machined, mesh }
+
+function trackShell(mesh, castMat, machMat) {
+  shellMats.push({ mesh, cast: castMat, machined: machMat });
+  mesh.material = castFinish ? castMat : machMat;
+}
+
+function applyFinish(cast) {
+  castFinish = cast;
+  btnFinish.classList.toggle('on', cast);
+  btnFinish.textContent = cast ? 'Cast' : 'CNC';
+  for (const s of shellMats) s.mesh.material = cast ? s.cast : s.machined;
+}
+
 function rbox(w, h, d, r, mat) {
-  const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 6, r), mat);
-  m.castShadow = true;
-  m.receiveShadow = true;
+  const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 8, r), mat);
+  m.castShadow = true; m.receiveShadow = true;
   return m;
 }
 function box(w, h, d, mat) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-  m.castShadow = true;
-  m.receiveShadow = true;
+  m.castShadow = true; m.receiveShadow = true;
   return m;
 }
 
 const root = new THREE.Group();
-root.position.y = 4.8;
+root.position.y = 4.6;
 scene.add(root);
 
 const parts = {};
 
-// ── BASE SHELL ─────────────────────────────────────────────
+// ── BASE ───────────────────────────────────────────────────
 const base = new THREE.Group();
 root.add(base);
 parts.base = base;
 
-const baseShell = rbox(W, BASE_H, D, 1.8, matSteel);
+const baseShell = rbox(W, BASE_H, D, 2.05, matCast);
 baseShell.position.y = BASE_H / 2;
 base.add(baseShell);
+trackShell(baseShell, matCast, matMachined);
 
-// Innenraum-Andeutung (nur Form, kein Flock) — hilft CNC die Kavität zu lesen
-const cavityCut = rbox(W - 3.4, 1.5, D - 3.4, 1.1, new THREE.MeshPhysicalMaterial({
-  color: 0x6a6e78, metalness: 0.85, roughness: 0.55, envMapIntensity: 0.25,
-}));
-cavityCut.position.y = BASE_H - 0.5;
-base.add(cavityCut);
+// Feiner hellerer Rand (sexy Kante)
+const baseRim = rbox(W + 0.15, 0.55, D + 0.15, 2.1, matCastRim);
+baseRim.position.y = BASE_H - 0.12;
+base.add(baseRim);
+trackShell(baseRim, matCastRim, matMachined);
 
-const hingeZ = -D / 2 + 1.4;
+// Innenkavität
+const cavity = rbox(W - 3.2, 1.65, D - 3.2, 1.2, matInner);
+cavity.position.y = BASE_H - 0.55;
+base.add(cavity);
+
+// ── DESIGN WELLS — Einkerbung oben & unten für Inserts ─────
+const wells = new THREE.Group();
+base.add(wells);
+parts.wells = wells;
+
+const wellW = W - WELL_INSET * 2;
+const wellD = D - WELL_INSET * 2;
+
+// Unten: Rahmen bleibt, Mulde geht ins Material (sichtbar von unten)
+const bottomShoulder = rbox(W - 1.2, 0.42, D - 1.2, 1.9, matCastRim);
+bottomShoulder.position.y = 0.12;
+wells.add(bottomShoulder);
+trackShell(bottomShoulder, matCastRim, matMachined);
+
+const bottomWell = rbox(wellW, WELL_DEPTH, wellD, 1.35, matWell);
+bottomWell.position.set(0, WELL_DEPTH * 0.55 + 0.15, 0);
+wells.add(bottomWell);
+
+const inserts = new THREE.Group();
+parts.inserts = inserts;
+
+const bottomInsert = rbox(wellW - 0.8, 0.28, wellD - 0.8, 1.15, matInsert);
+bottomInsert.position.y = WELL_DEPTH * 0.7 + 0.12;
+wells.add(bottomInsert);
+
+const bottomMark = new THREE.Mesh(new THREE.PlaneGeometry(30, 5.5), matInsertGold);
+bottomMark.rotation.x = Math.PI / 2;
+bottomMark.rotation.z = Math.PI; // lesbar von unten
+bottomMark.position.y = WELL_DEPTH + 0.28;
+wells.add(bottomMark);
+
+const hingeZ = -D / 2 + 1.35;
 const hingeY = BASE_H;
 
-const hinge = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, W - 12, 32), matHinge);
+const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, W - 14, 28), matHinge);
 hinge.rotation.z = Math.PI / 2;
 hinge.position.set(0, hingeY, hingeZ);
 hinge.castShadow = true;
 root.add(hinge);
 parts.hinge = hinge;
 
-const latchBtn = rbox(7.5, 2.0, 2.2, 0.45, matLatch);
-latchBtn.position.set(0, BASE_H * 0.55, D / 2 + 0.25);
+// Slim flush latch
+const latchBtn = rbox(9.5, 1.35, 1.6, 0.35, matLatch);
+latchBtn.position.set(0, BASE_H * 0.52, D / 2 + 0.15);
 base.add(latchBtn);
 parts.latch = latchBtn;
 
-// ── LID SHELL ──────────────────────────────────────────────
+// ── FAN POCKETS (fräsbare Aufnahmen — Mechanik separat) ────
+const pockets = new THREE.Group();
+pockets.visible = false;
+base.add(pockets);
+parts.pockets = pockets;
+
+const pivotBoss = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.4, 1.4, 24), matPocket);
+pivotBoss.position.set(-W / 2 + 6.5, BASE_H - 0.9, -D / 2 + 7.5);
+pockets.add(pivotBoss);
+const pivotBore = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.75, 0.75, 1.6, 16),
+  new THREE.MeshBasicMaterial({ color: 0x050506 })
+);
+pivotBore.position.copy(pivotBoss.position);
+pivotBore.position.y += 0.05;
+pockets.add(pivotBore);
+
+const arcPocket = box(14, 1.1, 6, matPocket);
+arcPocket.position.set(-W / 2 + 14, BASE_H - 1.0, -D / 2 + 16);
+pockets.add(arcPocket);
+
+const stopPocket = box(2.2, 2.0, 7, matPocket);
+stopPocket.position.set(-W / 2 + 4.5, BASE_H - 0.4, -D / 2 + 18);
+pockets.add(stopPocket);
+
+// ── LID ────────────────────────────────────────────────────
 const lidPivot = new THREE.Group();
 lidPivot.position.set(0, hingeY, hingeZ);
 root.add(lidPivot);
 
 const lid = new THREE.Group();
-lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
+lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.35);
 lidPivot.add(lid);
 parts.lid = lid;
 
-const lidShell = rbox(W, LID_H, D, 1.8, matSteel);
+const lidShell = rbox(W, LID_H, D, 2.05, matCast);
 lid.add(lidShell);
+trackShell(lidShell, matCast, matMachined);
 
-const stepLip = box(W - 10, 1.2, 3.0, matSteel);
-stepLip.position.set(0, -LID_H / 2 + 0.3, D / 2 - 2.2);
+const lidRim = rbox(W + 0.15, 0.45, D + 0.15, 2.1, matCastRim);
+lidRim.position.y = -LID_H / 2 + 0.18;
+lid.add(lidRim);
+trackShell(lidRim, matCastRim, matMachined);
+
+// Oben: feiner Metallrahmen + Mulde für Design-Insert (am Deckel)
+const topShoulder = rbox(W - 1.2, 0.38, D - 1.2, 1.9, matCastRim);
+topShoulder.position.y = LID_H / 2 - 0.08;
+lid.add(topShoulder);
+trackShell(topShoulder, matCastRim, matMachined);
+
+const topWell = rbox(wellW, WELL_DEPTH, wellD, 1.35, matWell);
+topWell.position.set(0, LID_H / 2 - WELL_DEPTH * 0.85 - 0.05, 0);
+lid.add(topWell);
+
+const topInsert = rbox(wellW - 0.8, 0.28, wellD - 0.8, 1.15, matInsert);
+topInsert.position.y = LID_H / 2 - WELL_DEPTH * 0.55;
+lid.add(topInsert);
+
+const topMark = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), matInsertGold);
+topMark.rotation.x = -Math.PI / 2;
+topMark.position.y = LID_H / 2 - WELL_DEPTH * 0.35 + 0.08;
+lid.add(topMark);
+
+// Soft step lip (refined)
+const stepLip = rbox(W - 14, 0.9, 2.4, 0.35, matCast);
+stepLip.position.set(0, -LID_H / 2 + 0.25, D / 2 - 2.0);
 lid.add(stepLip);
-parts.lip = stepLip;
+trackShell(stepLip, matCast, matMachined);
+
+// Sync wells visibility: bottom well group + top well on lid
+const wellMeshes = [bottomWell, bottomShoulder, topWell, topShoulder];
+const insertMeshes = [bottomInsert, bottomMark, topInsert, topMark];
 
 // ── UI ─────────────────────────────────────────────────────
 function easeInOut(t) {
@@ -363,18 +469,20 @@ const openEl = document.getElementById('open');
 const openLbl = document.getElementById('openLbl');
 const btnOpen = document.getElementById('btnOpen');
 const btnExplode = document.getElementById('btnExplode');
+const btnFinish = document.getElementById('btnFinish');
+const btnPockets = document.getElementById('btnPockets');
 const btnView = document.getElementById('btnView');
 
 function pose(t) {
   const lidT = easeInOut(t);
   lidPivot.rotation.x = -lidT * LID_MAX;
-  latchBtn.position.y = BASE_H * 0.55 - lidT * 0.35;
-  latchBtn.position.z = D / 2 + 0.25 - lidT * 0.15;
+  latchBtn.position.y = BASE_H * 0.52 - lidT * 0.28;
+  latchBtn.position.z = D / 2 + 0.15 - lidT * 0.12;
 
-  // Exploded: Deckel + Scharnier nach oben
   const e = easeInOut(explodeT);
   lid.position.y = LID_H / 2 + GAP + e * EXPLODE_Y;
-  hinge.position.y = hingeY + e * (EXPLODE_Y * 0.45);
+  hinge.position.y = hingeY + e * (EXPLODE_Y * 0.4);
+  // Bottom insert stays; top rides with lid via parenting
 
   openEl.value = String(Math.round(t * 100));
   openLbl.textContent = `${Math.round(t * 100)}%`;
@@ -394,12 +502,21 @@ btnOpen.onclick = () => go(target > 0.5 ? 0 : 1);
 btnExplode.onclick = () => {
   explode = !explode;
   btnExplode.classList.toggle('on', explode);
-  if (explode) go(Math.max(openT, 0.65));
+  if (explode) go(Math.max(openT, 0.7));
+};
+btnFinish.onclick = () => applyFinish(!castFinish);
+btnPockets.onclick = () => {
+  const on = !pockets.visible;
+  pockets.visible = on;
+  btnPockets.classList.toggle('on', on);
+  document.querySelector('.parts input[data-part="pockets"]').checked = on;
+  if (on) go(Math.max(openT, 0.55));
 };
 btnView.onclick = () => {
   viewIdx = (viewIdx + 1) % viewKeys.length;
   setView(viewKeys[viewIdx]);
   if (viewKeys[viewIdx] === 'open') go(1);
+  if (viewKeys[viewIdx] === 'bottom') go(0);
 };
 
 openEl.oninput = () => {
@@ -411,8 +528,18 @@ openEl.oninput = () => {
 
 document.querySelectorAll('.parts input').forEach((el) => {
   el.addEventListener('change', () => {
-    const p = parts[el.dataset.part];
+    const key = el.dataset.part;
+    if (key === 'wells') {
+      for (const m of wellMeshes) m.visible = el.checked;
+      return;
+    }
+    if (key === 'inserts') {
+      for (const m of insertMeshes) m.visible = el.checked;
+      return;
+    }
+    const p = parts[key];
     if (p) p.visible = el.checked;
+    if (key === 'pockets') btnPockets.classList.toggle('on', el.checked);
   });
 });
 
@@ -425,8 +552,10 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
+applyFinish(true);
 pose(0);
-setTimeout(() => { go(1); setView('open'); }, 700);
+// Closed first — Mulden & Cast-Skin lesen
+setTimeout(() => setView('hero'), 200);
 
 let last = performance.now();
 function frame(now) {
@@ -437,8 +566,7 @@ function frame(now) {
     openT += (target - openT) * Math.min(1, dt * k);
     if (Math.abs(target - openT) < 0.0005) { openT = target; animating = false; }
   }
-  const expTarget = explode ? 1 : 0;
-  explodeT += (expTarget - explodeT) * Math.min(1, dt * 4.2);
+  explodeT += ((explode ? 1 : 0) - explodeT) * Math.min(1, dt * 4.2);
   pose(openT);
   controls.update();
   renderer.render(scene, camera);
