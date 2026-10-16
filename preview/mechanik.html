@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>LOKAL — einfach</title>
+  <title>LOKAL — Auffächern</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -14,149 +14,221 @@
     }
     header {
       width: 100%; padding: 10px 16px; background: #3a2118; color: #f0d2c4;
-      font-size: 12px; display: flex; justify-content: space-between;
+      font-size: 12px; display: flex; justify-content: space-between; gap: 12px;
     }
     header a { color: #fff; }
     canvas {
-      margin: 24px 16px 8px;
+      margin: 20px 16px 8px;
       width: min(560px, 92vw);
+      max-width: 100%;
       height: auto;
       background: #18181c;
       border-radius: 8px;
     }
-    .box { width: min(560px, 92vw); padding: 0 4px 32px; }
-    h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
-    ol { margin: 0 0 18px 18px; color: #bbb; font-size: 15px; line-height: 1.7; }
-    ol b { color: #fff; }
+    .box { width: min(560px, 92vw); padding: 0 8px 36px; }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .lead { font-size: 14px; color: #aaa; line-height: 1.45; margin-bottom: 16px; }
     label { font-size: 13px; color: #888; display: block; margin-bottom: 8px; }
     input[type=range] {
       -webkit-appearance: none; width: 100%; height: 4px; background: #333;
     }
     input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 24px; height: 24px;
+      -webkit-appearance: none; width: 26px; height: 26px;
       border-radius: 50%; background: #e8c48a; cursor: pointer;
     }
     .msg {
       margin-top: 14px; padding: 12px 14px;
       background: #18181c; border-left: 3px solid #e8c48a;
-      font-size: 14px; color: #ddd;
+      font-size: 14px; color: #ddd; line-height: 1.4;
     }
+    .nums {
+      margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap;
+      font-size: 13px; color: #888; font-variant-numeric: tabular-nums;
+    }
+    .nums b { color: #fff; }
   </style>
 </head>
 <body>
   <header>
-    <span>Lokal · Preview</span>
-    <a href="/">← Produktmodell</a>
+    <span>Lokal · ohne Server öffenbar</span>
+    <a href="../index.html">← Produktmodell</a>
   </header>
 
   <canvas id="c" width="560" height="400"></canvas>
 
   <div class="box">
-    <h1>Eine Bewegung</h1>
-    <ol>
-      <li>Du öffnest den <b>Deckel</b></li>
-      <li>Ein <b style="color:#ff6a45">Stift</b> am Deckel schiebt mit</li>
-      <li>Der Stift steckt in einer <b style="color:#5b9dff">Gabel</b></li>
-      <li>Die Gabel dreht die <b>Karten</b> auseinander</li>
-    </ol>
+    <h1>Rotation → Auffächern</h1>
+    <p class="lead">
+      Der Regler = Deckel-Drehung. Der orange Stift dreht mit.
+      Liegt er an der blauen Gabel an, <b style="color:#fff">muss</b> die Gabel mitdrehen —
+      und die Karten hängen an der Gabel.
+    </p>
 
-    <label for="open">Öffnen</label>
-    <input id="open" type="range" min="0" max="100" value="70" />
-    <div class="msg" id="msg">Stift drückt Gabel → Karten gehen auseinander.</div>
+    <label for="open">Deckel drehen</label>
+    <input id="open" type="range" min="0" max="100" value="0" />
+
+    <div class="msg" id="msg">Zieh den Regler langsam.</div>
+    <div class="nums">
+      <span>Stift <b id="nPin">0°</b></span>
+      <span>Gabel <b id="nFork">0°</b></span>
+      <span>K0 <b id="n0">0°</b></span>
+      <span>K1 <b id="n1">0°</b></span>
+      <span>K2 <b id="n2">0°</b></span>
+    </div>
   </div>
 
   <script>
-const c = document.getElementById('c');
-const ctx = c.getContext('2d');
-const slider = document.getElementById('open');
-const msg = document.getElementById('msg');
+(function () {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const slider = document.getElementById('open');
+  const msg = document.getElementById('msg');
+  const nPin = document.getElementById('nPin');
+  const nFork = document.getElementById('nFork');
+  const n0 = document.getElementById('n0');
+  const n1 = document.getElementById('n1');
+  const n2 = document.getElementById('n2');
 
-const PX = 280;
-const PY = 240;
+  const PX = 280, PY = 250;
+  const SLOT = 8;      // Spiel in der Gabel (Grad) — Totgang
+  const PIN_MAX = 50;  // Stift-Weg bei voll auf
+  const FORK_MAX = 40; // max. Gabel-/Karten-Auffächerung
 
-function rad(deg) { return deg * Math.PI / 180; }
+  // Zustand der Gabel — wird vom Stift geschoben, nicht vom Slider direkt
+  let fork = 0;
 
-function draw(t) {
-  ctx.clearRect(0, 0, c.width, c.height);
-  ctx.fillStyle = '#18181c';
-  ctx.fillRect(0, 0, c.width, c.height);
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-  // erste 20%: Spiel, danach Gabel folgt
-  const pinAngle = t * 50;
-  const forkAngle = Math.max(0, (t - 0.2) / 0.8) * 40;
-  const angles = [forkAngle, forkAngle * 0.5, 0];
-  const cols = ['#6ea8ff', '#7ddea2', '#c4a050'];
-
-  ctx.fillStyle = '#666';
-  ctx.font = '13px system-ui';
-  ctx.fillText('Draufsicht', 16, 28);
-
-  // Karten — breiter, klar getrennt
-  for (let i = 2; i >= 0; i--) {
-    ctx.save();
-    ctx.translate(PX, PY);
-    ctx.rotate(rad(-angles[i]));
-    ctx.fillStyle = cols[i];
-    ctx.fillRect(-18, -185, 36, 160);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.font = '600 12px system-ui';
-    ctx.fillText('K' + i, -8, -40);
-    ctx.restore();
+  /** Echte Übertragung: Stift-Winkel → Gabel-Winkel (Formschluss) */
+  function driveFork(pin) {
+    const rel = pin - fork;
+    if (rel > SLOT) fork = pin - SLOT;       // Antriebswand
+    else if (rel < -SLOT) fork = pin + SLOT; // Rückwand
+    fork = clamp(fork, 0, FORK_MAX);
+    const contacting = Math.abs(pin - fork) >= SLOT - 0.01;
+    return contacting;
   }
 
-  // Gabel
-  ctx.save();
-  ctx.translate(PX, PY);
-  ctx.rotate(rad(-forkAngle));
-  ctx.fillStyle = '#5b9dff';
-  ctx.fillRect(-20, -110, 9, 75);
-  ctx.fillRect(11, -110, 9, 75);
-  ctx.fillRect(-20, -44, 40, 9);
-  ctx.restore();
+  function draw(t) {
+    // Input: nur der Stift folgt dem Deckel (Regler)
+    const pin = t * PIN_MAX;
+    const contacting = driveFork(pin);
 
-  // Stift
-  ctx.save();
-  ctx.translate(PX, PY);
-  ctx.rotate(rad(-pinAngle));
-  ctx.strokeStyle = '#ff6a45';
-  ctx.lineWidth = 5;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(0, -92);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0, -92, 12, 0, Math.PI * 2);
-  ctx.fillStyle = '#ff6a45';
-  ctx.fill();
-  ctx.restore();
+    // Output: Karten nur aus der Gabel
+    const k0 = fork;
+    const k1 = fork * 0.5;
+    const k2 = 0;
 
-  // Pivot
-  ctx.beginPath();
-  ctx.arc(PX, PY, 11, 0, Math.PI * 2);
-  ctx.fillStyle = '#e8c48a';
-  ctx.fill();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#18181c';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.font = '12px system-ui';
-  ctx.fillStyle = '#ff6a45';
-  ctx.fillText('● Stift', 16, 375);
-  ctx.fillStyle = '#5b9dff';
-  ctx.fillText('■ Gabel', 90, 375);
-  ctx.fillStyle = '#6ea8ff';
-  ctx.fillText('■ K0', 170, 375);
-  ctx.fillStyle = '#7ddea2';
-  ctx.fillText('■ K1', 230, 375);
-  ctx.fillStyle = '#c4a050';
-  ctx.fillText('■ K2', 290, 375);
+    ctx.fillStyle = '#666';
+    ctx.font = '13px system-ui';
+    ctx.fillText('Draufsicht — Stift schiebt Gabel, Gabel dreht Karten', 14, 26);
 
-  if (t < 0.02) msg.textContent = 'Geschlossen. Zieh den Regler.';
-  else if (t < 0.2) msg.textContent = 'Stift bewegt sich — Gabel noch nicht (Spiel).';
-  else if (t < 1) msg.textContent = 'Stift drückt Gabel → Karten gehen auseinander.';
-  else msg.textContent = 'Offen. K0 am weitesten, K2 bleibt.';
-}
+    const cards = [
+      { a: k0, col: '#6ea8ff', label: 'K0' },
+      { a: k1, col: '#7ddea2', label: 'K1' },
+      { a: k2, col: '#c4a050', label: 'K2' },
+    ];
 
-slider.oninput = () => draw(+slider.value / 100);
-draw(+slider.value / 100);
+    // Karten zuerst (hinten)
+    for (let i = cards.length - 1; i >= 0; i--) {
+      const card = cards[i];
+      ctx.save();
+      ctx.translate(PX, PY);
+      ctx.rotate((-card.a) * Math.PI / 180);
+      ctx.fillStyle = card.col;
+      ctx.fillRect(-18, -190, 36, 165);
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.font = '600 13px system-ui';
+      ctx.fillText(card.label, -10, -50);
+      ctx.restore();
+    }
+
+    // Gabel (blau) — Winkel = fork
+    ctx.save();
+    ctx.translate(PX, PY);
+    ctx.rotate((-fork) * Math.PI / 180);
+    ctx.fillStyle = '#5b9dff';
+    ctx.fillRect(-22, -115, 10, 80); // Backe L
+    ctx.fillRect(12, -115, 10, 80);  // Backe R
+    ctx.fillRect(-22, -45, 44, 10);  // Steg
+    ctx.restore();
+
+    // Stift (orange) — Winkel = pin (vom Deckel)
+    ctx.save();
+    ctx.translate(PX, PY);
+    ctx.rotate((-pin) * Math.PI / 180);
+    ctx.strokeStyle = '#ff6a45';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -95);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, -95, 12, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff6a45';
+    ctx.fill();
+    // Kontaktpunkt markieren
+    if (contacting) {
+      ctx.beginPath();
+      ctx.arc(0, -95, 16, 0, Math.PI * 2);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Pivot
+    ctx.beginPath();
+    ctx.arc(PX, PY, 11, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8c48a';
+    ctx.fill();
+
+    nPin.textContent = pin.toFixed(0) + '°';
+    nFork.textContent = fork.toFixed(0) + '°';
+    n0.textContent = k0.toFixed(0) + '°';
+    n1.textContent = k1.toFixed(0) + '°';
+    n2.textContent = k2.toFixed(0) + '°';
+
+    if (t < 0.01) {
+      msg.textContent = 'Geschlossen. Stift und Gabel bei 0°.';
+    } else if (!contacting && fork < 0.5) {
+      msg.textContent = 'Stift dreht — noch Spiel in der Gabel (kein Kontakt).';
+    } else if (contacting && fork < FORK_MAX - 0.5) {
+      msg.textContent = 'Kontakt: Stift drückt Gabel → K0/K1 fächern auf.';
+    } else if (fork >= FORK_MAX - 0.5) {
+      msg.textContent = 'Gabel am Anschlag. Karten voll aufgefächert.';
+    } else {
+      msg.textContent = 'Gabel folgt dem Stift.';
+    }
+  }
+
+  function setT(t) {
+    t = clamp(t, 0, 1);
+    slider.value = String(Math.round(t * 100));
+    draw(t);
+  }
+
+  slider.addEventListener('input', () => {
+    draw(+slider.value / 100);
+  });
+
+  // Start geschlossen, dann langsam öffnen — damit man den Kontakt sieht
+  fork = 0;
+  setT(0);
+
+  let t = 0;
+  function intro() {
+    t = Math.min(1, t + 0.006);
+    setT(t);
+    if (t < 0.85) requestAnimationFrame(intro);
+  }
+  setTimeout(intro, 500);
+})();
   </script>
 </body>
 </html>
