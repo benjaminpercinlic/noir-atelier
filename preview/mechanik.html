@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>LOKAL — einfach</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; background: #111; color: #eee;
+      font-family: system-ui, sans-serif;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    header {
+      width: 100%; padding: 10px 16px; background: #3a2118; color: #f0d2c4;
+      font-size: 12px; display: flex; justify-content: space-between;
+    }
+    header a { color: #fff; }
+    canvas {
+      margin: 24px 16px 8px;
+      width: min(560px, 92vw);
+      height: auto;
+      background: #18181c;
+      border-radius: 8px;
+    }
+    .box { width: min(560px, 92vw); padding: 0 4px 32px; }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    ol { margin: 0 0 18px 18px; color: #bbb; font-size: 15px; line-height: 1.7; }
+    ol b { color: #fff; }
+    label { font-size: 13px; color: #888; display: block; margin-bottom: 8px; }
+    input[type=range] {
+      -webkit-appearance: none; width: 100%; height: 4px; background: #333;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 24px; height: 24px;
+      border-radius: 50%; background: #e8c48a; cursor: pointer;
+    }
+    .msg {
+      margin-top: 14px; padding: 12px 14px;
+      background: #18181c; border-left: 3px solid #e8c48a;
+      font-size: 14px; color: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span>Lokal · Preview</span>
+    <a href="/">← Produktmodell</a>
+  </header>
+
+  <canvas id="c" width="560" height="400"></canvas>
+
+  <div class="box">
+    <h1>Eine Bewegung</h1>
+    <ol>
+      <li>Du öffnest den <b>Deckel</b></li>
+      <li>Ein <b style="color:#ff6a45">Stift</b> am Deckel schiebt mit</li>
+      <li>Der Stift steckt in einer <b style="color:#5b9dff">Gabel</b></li>
+      <li>Die Gabel dreht die <b>Karten</b> auseinander</li>
+    </ol>
+
+    <label for="open">Öffnen</label>
+    <input id="open" type="range" min="0" max="100" value="70" />
+    <div class="msg" id="msg">Stift drückt Gabel → Karten gehen auseinander.</div>
+  </div>
+
+  <script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+const slider = document.getElementById('open');
+const msg = document.getElementById('msg');
+
+const PX = 280;
+const PY = 240;
+
+function rad(deg) { return deg * Math.PI / 180; }
+
+function draw(t) {
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.fillStyle = '#18181c';
+  ctx.fillRect(0, 0, c.width, c.height);
+
+  // erste 20%: Spiel, danach Gabel folgt
+  const pinAngle = t * 50;
+  const forkAngle = Math.max(0, (t - 0.2) / 0.8) * 40;
+  const angles = [forkAngle, forkAngle * 0.5, 0];
+  const cols = ['#6ea8ff', '#7ddea2', '#c4a050'];
+
+  ctx.fillStyle = '#666';
+  ctx.font = '13px system-ui';
+  ctx.fillText('Draufsicht', 16, 28);
+
+  // Karten — breiter, klar getrennt
+  for (let i = 2; i >= 0; i--) {
+    ctx.save();
+    ctx.translate(PX, PY);
+    ctx.rotate(rad(-angles[i]));
+    ctx.fillStyle = cols[i];
+    ctx.fillRect(-18, -185, 36, 160);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.font = '600 12px system-ui';
+    ctx.fillText('K' + i, -8, -40);
+    ctx.restore();
+  }
+
+  // Gabel
+  ctx.save();
+  ctx.translate(PX, PY);
+  ctx.rotate(rad(-forkAngle));
+  ctx.fillStyle = '#5b9dff';
+  ctx.fillRect(-20, -110, 9, 75);
+  ctx.fillRect(11, -110, 9, 75);
+  ctx.fillRect(-20, -44, 40, 9);
+  ctx.restore();
+
+  // Stift
+  ctx.save();
+  ctx.translate(PX, PY);
+  ctx.rotate(rad(-pinAngle));
+  ctx.strokeStyle = '#ff6a45';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, -92);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, -92, 12, 0, Math.PI * 2);
+  ctx.fillStyle = '#ff6a45';
+  ctx.fill();
+  ctx.restore();
+
+  // Pivot
+  ctx.beginPath();
+  ctx.arc(PX, PY, 11, 0, Math.PI * 2);
+  ctx.fillStyle = '#e8c48a';
+  ctx.fill();
+
+  ctx.font = '12px system-ui';
+  ctx.fillStyle = '#ff6a45';
+  ctx.fillText('● Stift', 16, 375);
+  ctx.fillStyle = '#5b9dff';
+  ctx.fillText('■ Gabel', 90, 375);
+  ctx.fillStyle = '#6ea8ff';
+  ctx.fillText('■ K0', 170, 375);
+  ctx.fillStyle = '#7ddea2';
+  ctx.fillText('■ K1', 230, 375);
+  ctx.fillStyle = '#c4a050';
+  ctx.fillText('■ K2', 290, 375);
+
+  if (t < 0.02) msg.textContent = 'Geschlossen. Zieh den Regler.';
+  else if (t < 0.2) msg.textContent = 'Stift bewegt sich — Gabel noch nicht (Spiel).';
+  else if (t < 1) msg.textContent = 'Stift drückt Gabel → Karten gehen auseinander.';
+  else msg.textContent = 'Offen. K0 am weitesten, K2 bleibt.';
+}
+
+slider.oninput = () => draw(+slider.value / 100);
+draw(+slider.value / 100);
+  </script>
+</body>
+</html>
