@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>N°01 — Finished product (open)</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #111; color: #ddd; font-family: system-ui, sans-serif; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .ui {
+      position: fixed; left: 16px; bottom: 16px; z-index: 2;
+      background: rgba(0,0,0,.75); border: 1px solid #444; padding: 12px 14px;
+      max-width: 320px; font-size: 13px; line-height: 1.45;
+    }
+    .ui b { color: #e8c48a; }
+    label { display: block; margin-top: 8px; font-size: 11px; color: #999; }
+    input[type=range] { width: 100%; }
+  </style>
+</head>
+<body>
+  <div class="ui">
+    <div><b>Finished product</b> — same geometry as website</div>
+    <div>Open lid + fan to show CNC the intent. Hinge method TBD with shop.</div>
+    <label>Lid <input id="lid" type="range" min="0" max="100" value="95" /></label>
+    <label>Fan <input id="fan" type="range" min="0" max="100" value="80" /></label>
+  </div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const CW = 85.6, CD = 53.98, CT = 0.76;
+const SIDE = 3.2;
+const W = CW + SIDE * 2, D = CD + SIDE * 2;
+const BASE_H = 4.4, LID_H = 4.0, GAP = 0.12, N = 3;
+const FAN_X = 0.5 - CW / 2, FAN_Z = 2.5 - CD / 2;
+const R = 1.8, WELL_INSET = 3.0, WELL_DEPTH = 0.35;
+const HINGE_R = 1.05, HINGE_LEN = W - 12;
+const HINGE_Z = -D / 2 + 1.4, HINGE_Y = BASE_H;
+const LID_MAX = THREE.MathUtils.degToRad(98);
+const FAN_STEP = THREE.MathUtils.degToRad(8.2);
+const FAN_LIFT = 0.55;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x121214);
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.5, 500);
+camera.position.set(70, 55, 95);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 18, 0);
+controls.update();
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x222222, 1.1));
+const key = new THREE.DirectionalLight(0xffffff, 1.4);
+key.position.set(40, 80, 50);
+scene.add(key);
+
+const matSteel = new THREE.MeshPhysicalMaterial({ color: 0xb8bcc6, metalness: 1, roughness: 0.38 });
+const matDark = new THREE.MeshStandardMaterial({ color: 0x2a2c32, metalness: 0.9, roughness: 0.4 });
+const matCard = new THREE.MeshStandardMaterial({ color: 0xf0ebe3, roughness: 0.5 });
+const matGold = new THREE.MeshPhysicalMaterial({ color: 0xc4a574, metalness: 1, roughness: 0.4 });
+const matWell = new THREE.MeshPhysicalMaterial({ color: 0x9aa0aa, metalness: 1, roughness: 0.5 });
+
+function rbox(w, h, d, r, m) {
+  return new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 6, r), m || matSteel);
+}
+function box(w, h, d, m) {
+  return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m || matSteel);
+}
+
+const root = new THREE.Group();
+root.position.y = 2;
+scene.add(root);
+
+const base = new THREE.Group();
+root.add(base);
+const baseShell = rbox(W, BASE_H, D, R);
+baseShell.position.y = BASE_H / 2;
+base.add(baseShell);
+const cav = rbox(W - 3.4, 1.4, D - 3.4, 1.1, matWell);
+cav.position.y = BASE_H - 0.55;
+base.add(cav);
+const bWell = rbox(W - WELL_INSET * 2, WELL_DEPTH, D - WELL_INSET * 2, 0.9, matWell);
+bWell.position.y = WELL_DEPTH * 0.45;
+base.add(bWell);
+
+const hinge = new THREE.Mesh(new THREE.CylinderGeometry(HINGE_R, HINGE_R, HINGE_LEN, 32), matSteel);
+hinge.rotation.z = Math.PI / 2;
+hinge.position.set(0, HINGE_Y, HINGE_Z);
+base.add(hinge);
+
+const lidPivot = new THREE.Group();
+lidPivot.position.set(0, HINGE_Y, HINGE_Z);
+root.add(lidPivot);
+const lid = new THREE.Group();
+lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
+lidPivot.add(lid);
+lid.add(rbox(W, LID_H, D, R));
+const face = rbox(W - 3, 0.55, D - 3, 1.2, new THREE.MeshPhysicalMaterial({ color: 0x101014, metalness: 0.2, roughness: 0.5 }));
+face.position.y = LID_H / 2 - 0.05;
+lid.add(face);
+const tWell = rbox(W - WELL_INSET * 2, WELL_DEPTH, D - WELL_INSET * 2, 0.9, matWell);
+tWell.position.y = LID_H / 2 - WELL_DEPTH * 0.45;
+lid.add(tWell);
+const lip = box(W - 10, 1, 2.6);
+lip.position.set(0, -LID_H / 2 + 0.35, D / 2 - 2.1);
+lid.add(lip);
+
+const money = new THREE.Group();
+money.position.set(-(W - 4) * 0.36, -LID_H / 2 - 0.1, -9.5);
+const leaf = rbox(0.65, 0.26, 10, 0.08, matSteel);
+money.add(leaf);
+const tip = rbox(0.65, 0.2, 1.2, 0.06, matSteel);
+tip.position.set(0, -0.06, 5.1); tip.rotation.x = 0.35;
+money.add(tip);
+lid.add(money);
+
+const fanPivot = new THREE.Group();
+fanPivot.position.set(FAN_X, BASE_H - 0.85, FAN_Z);
+base.add(fanPivot);
+const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 3.6, 20), matGold);
+pin.position.y = 1.5;
+fanPivot.add(pin);
+
+const cradles = [];
+for (let i = 0; i < N; i++) {
+  const g = new THREE.Group();
+  const back = box(1.15, 1.65, CD * 0.5, matDark);
+  back.position.set(0.2, 0.72, CD * 0.18);
+  const bottom = box(CW * 0.28, 0.32, CD * 0.5, matDark);
+  bottom.position.set(CW * 0.12, 0.12, CD * 0.18);
+  const top = box(CW * 0.12, 0.28, CD * 0.5, matDark);
+  top.position.set(CW * 0.05, 1.35, CD * 0.18);
+  g.add(back, bottom, top);
+  const card = rbox(CW, CT, CD, 2.2, matCard);
+  card.position.set(CW / 2 - 0.5, 0.48 + CT / 2, CD / 2 - 2.5);
+  g.add(card);
+  g.position.y = i * 0.62;
+  fanPivot.add(g);
+  cradles.push({ g, baseY: i * 0.62, i });
+}
+
+function pose(lidT, fanT) {
+  lidPivot.rotation.x = -lidT * LID_MAX;
+  for (const c of cradles) {
+    const k = c.i;
+    const lag = (N - 1 - k) * 0.07;
+    const t = Math.max(0, Math.min(1, (fanT - lag) / (1 - lag * 0.5)));
+    const s = t * t * (3 - 2 * t);
+    const spread = s * FAN_STEP * k;
+    c.g.rotation.y = -spread;
+    c.g.position.set(Math.sin(spread) * 1.2, c.baseY + s * FAN_LIFT * (0.2 + k * 0.18), (1 - Math.cos(spread)) * 2.4);
+  }
+}
+
+const lidEl = document.getElementById('lid');
+const fanEl = document.getElementById('fan');
+const sync = () => pose(+lidEl.value / 100, +fanEl.value / 100);
+lidEl.oninput = fanEl.oninput = sync;
+sync();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+function frame() {
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+frame();
+  </script>
+</body>
+</html>

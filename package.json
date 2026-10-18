@@ -1,0 +1,24 @@
+{
+  "name": "noir-atelier",
+  "version": "1.0.0",
+  "description": "Interactive 3D prototype (One Motion Bloom).",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benjaminpercinlic/noir-atelier.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/benjaminpercinlic/noir-atelier/issues"
+  },
+  "homepage": "https://github.com/benjaminpercinlic/noir-atelier#readme",
+  "dependencies": {
+    "three": "^0.170.0"
+  }
+}
