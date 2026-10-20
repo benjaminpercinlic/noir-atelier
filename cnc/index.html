@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell + 3 cradles (top cradle rough grip). Flat black anodized interior. Recess top &amp; bottom — bottom N°01 + serial (placement TBD). No latch flap.</p>
+    <p>Shell + 3 cradles. Flat black anodized interior. CNC stop-hinge: knuckles cut into base &amp; lid + one pin — no welds. Opens clean to ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnFan">Fan</button>
@@ -108,7 +108,7 @@
     <label><input type="checkbox" data-part="lid" checked /> Lid shell</label>
     <label><input type="checkbox" data-part="wells" checked /> Recesses</label>
     <label><input type="checkbox" data-part="cradles" checked /> Card cradles ×3</label>
-    <label><input type="checkbox" data-part="hinge" checked /> Hinge</label>
+    <label><input type="checkbox" data-part="hinge" checked /> Hinge pin</label>
     <label><input type="checkbox" data-part="lip" checked /> Step lip</label>
   </aside>
 
@@ -116,13 +116,14 @@
     <h2>Specs (mm)</h2>
     <ul>
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
+      <li><em>Hinge</em> 3-knuckle + Ø1.1 pin</li>
+      <li><em>Stop</em> integral · ~95°</li>
       <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
       <li><em>Side margin</em> 3.2 L = R</li>
       <li><em>Base H</em> 4.4 · <em>Lid H</em> 4.0</li>
       <li><em>Recess</em> 86.0 × 54.4 × 0.35</li>
       <li><em>Cradles</em> 3× on pivot</li>
-      <li><em>Top cradle</em> rough grip</li>
       <li><em>Corner R</em> ~1.8</li>
       <li><em>Units</em> mm</li>
     </ul>
@@ -160,13 +161,13 @@ const WELL_DEPTH = 0.35;
 const LID_MAX = THREE.MathUtils.degToRad(98);
 const FAN_STEP = THREE.MathUtils.degToRad(8.2);
 const FAN_LIFT = 0.55;
-// Exploded lineup (front → back): base → cradles → hinge → lid
+// Exploded: lid stands upright at back; pin pulled aside; base + cradles in front
 const EXPLODE = {
-  base:    { x: 0, y: 0,  z:  28 },
-  cradles: { x: 0, y: 4,  z:   6 },
-  cradleZ: 9,
-  hinge:   { x: 0, y: 8,  z: -22 },
-  lid:     { x: 0, y: 12, z: -52 },
+  base:    { x: 0, y: 0,  z:  34 },
+  cradles: { x: 0, y: 5,  z:  10 },
+  cradleZ: 8,
+  pin:     { x: 46, y: 16, z: -6 },
+  lid:     { x: 0, y: 6,  z: -36 },
 };
 
 const canvas = document.getElementById('c');
@@ -237,7 +238,7 @@ const views = {
   top:  { pos: [0, 120, 8], target: [0, 6, 0] },
   bottom: { pos: [15, -70, 50], target: [0, 4, 0] },
   side: { pos: [130, 28, 0], target: [0, 8, 0] },
-  explode: { pos: [95, 55, 70], target: [0, 10, -8] },
+  explode: { pos: [110, 48, 62], target: [0, 22, -12] },
 };
 const viewKeys = ['hero', 'open', 'fan', 'top', 'bottom', 'side', 'explode'];
 camera.position.fromArray(views.hero.pos);
@@ -362,15 +363,53 @@ const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
 cavity.position.y = 0.28;
 base.add(cavity);
 
-const hingeZ = -D / 2 + 1.4;
+// ── CNC STOP-HINGE (integral knuckles + one pin, no welds) ──
+// Base: 2 outer knuckles · Lid: 1 center knuckle · Ø pin through all
+// Open stop ~95° via machined shoulder on base rear
+const PIN_R = 0.55;
+const KNUCKLE_R = 1.2;
+const hingeZ = -D / 2 + KNUCKLE_R;
 const hingeY = BASE_H;
 
-const hinge = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, W - 12, 32), matHinge);
-hinge.rotation.z = Math.PI / 2;
-hinge.position.set(0, hingeY, hingeZ);
-hinge.castShadow = true;
-root.add(hinge);
-parts.hinge = hinge;
+function makeKnuckle(len, mat) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(KNUCKLE_R, KNUCKLE_R, len, 28), mat);
+  m.rotation.z = Math.PI / 2;
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
+}
+
+const knSpan = W - 14;
+const knLens = [knSpan * 0.28, knSpan * 0.36, knSpan * 0.28]; // base · lid · base
+const knGap = 0.35;
+let knX = -knSpan / 2;
+
+const baseKnL = makeKnuckle(knLens[0] - knGap, matSteel);
+baseKnL.position.set(knX + knLens[0] / 2, hingeY, hingeZ);
+base.add(baseKnL);
+knX += knLens[0];
+
+const lidKnCenterX = knX + knLens[1] / 2;
+knX += knLens[1];
+
+const baseKnR = makeKnuckle(knLens[2] - knGap, matSteel);
+baseKnR.position.set(knX + knLens[2] / 2, hingeY, hingeZ);
+base.add(baseKnR);
+
+// Integral open-stop shoulder (hits lid at ~95°)
+const hingeStop = box(W - 22, 1.1, 1.6, matSteel);
+hingeStop.position.set(0, BASE_H - 0.55, -D / 2 + 2.6);
+base.add(hingeStop);
+
+const pin = new THREE.Mesh(
+  new THREE.CylinderGeometry(PIN_R, PIN_R, knSpan + 2.5, 20),
+  matHinge
+);
+pin.rotation.z = Math.PI / 2;
+pin.position.set(0, hingeY, hingeZ);
+pin.castShadow = true;
+root.add(pin);
+parts.hinge = pin;
 
 // Kein Latch / Verschluss-Kläppchen
 
@@ -423,6 +462,11 @@ const lidPivot = new THREE.Group();
 lidPivot.position.set(0, hingeY, hingeZ);
 root.add(lidPivot);
 
+// Lid knuckle sits on pivot axis (rotates with lid)
+const lidKn = makeKnuckle(knLens[1] - knGap, matSteel);
+lidKn.position.set(lidKnCenterX, 0, 0);
+lidPivot.add(lidKn);
+
 const lid = new THREE.Group();
 lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
 lidPivot.add(lid);
@@ -450,9 +494,6 @@ parts.wells = { visible: true };
 const matClip = new THREE.MeshPhysicalMaterial({
   color: 0x2a2c32, metalness: 0.9, roughness: 0.4, envMapIntensity: 0.45,
 });
-const matClipEdge = new THREE.MeshPhysicalMaterial({
-  color: 0x7a808a, metalness: 1, roughness: 0.28, envMapIntensity: 0.55,
-});
 const matThumb = new THREE.MeshStandardMaterial({ color: 0x1a1c20, roughness: 1, metalness: 0.2 });
 const matGold = new THREE.MeshPhysicalMaterial({
   color: 0xc4a574, metalness: 1, roughness: 0.42, envMapIntensity: 0.4,
@@ -474,18 +515,14 @@ function makeClip(index) {
   const g = new THREE.Group();
   const isTop = index === N - 1;
   const matBody = isTop ? matThumb : matClip;
-  const back = box(1.15, 1.65, CD * 0.5, matBody);
-  back.position.set(0.2, 0.72, CD * 0.18);
-  const bottom = box(CW * 0.28, 0.32, CD * 0.5, matBody);
-  bottom.position.set(CW * 0.12, 0.12, CD * 0.18);
-  const top = box(CW * 0.12, 0.28, CD * 0.5, matBody);
-  top.position.set(CW * 0.05, 1.35, CD * 0.18);
-  const edge = box(0.15, 1.65, CD * 0.5, isTop ? matThumb : matClipEdge);
-  edge.position.set(0.75, 0.72, CD * 0.18);
-  const stop = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.6, 10), matBody);
-  stop.rotation.z = Math.PI / 2;
-  stop.position.set(-0.6, 0.7, -1.8 - index * 0.8);
-  g.add(back, bottom, top, edge, stop);
+  // Slim cradle — no side bar, flat on the deck
+  const back = box(1.0, 1.45, CD * 0.48, matBody);
+  back.position.set(0.15, 0.65, CD * 0.16);
+  const bottom = box(CW * 0.26, 0.28, CD * 0.48, matBody);
+  bottom.position.set(CW * 0.1, 0.1, CD * 0.16);
+  const top = box(CW * 0.1, 0.24, CD * 0.48, matBody);
+  top.position.set(CW * 0.04, 1.2, CD * 0.16);
+  g.add(back, bottom, top);
   return g;
 }
 
@@ -589,15 +626,11 @@ function pose() {
   const fanE = easeInOut(fanT);
   const e = easeInOut(explodeT);
 
-  // Flatten lid as parts pull apart into a linear stack
-  lidPivot.rotation.x = -lidE * LID_MAX * (1 - e);
+  // Exploded: lid stands upright (back wall); normal open otherwise
+  const openEff = THREE.MathUtils.lerp(lidE, 1, e);
+  lidPivot.rotation.x = -openEff * LID_MAX;
 
-  // Front → back: base · cradles · hinge · lid (lid furthest back)
-  base.position.set(
-    EXPLODE.base.x * e,
-    EXPLODE.base.y * e,
-    EXPLODE.base.z * e
-  );
+  base.position.set(EXPLODE.base.x * e, EXPLODE.base.y * e, EXPLODE.base.z * e);
 
   cradlesRoot.position.set(
     EXPLODE.cradles.x * e,
@@ -605,16 +638,17 @@ function pose() {
     EXPLODE.cradles.z * e
   );
 
-  hinge.position.set(
-    EXPLODE.hinge.x * e,
-    hingeY + (EXPLODE.hinge.y - hingeY) * e,
-    hingeZ + (EXPLODE.hinge.z - hingeZ) * e
+  // Pin slides out sideways so the knuckle stack reads clearly
+  pin.position.set(
+    EXPLODE.pin.x * e,
+    hingeY + EXPLODE.pin.y * e,
+    hingeZ + EXPLODE.pin.z * e
   );
 
   lidPivot.position.set(
     EXPLODE.lid.x * e,
-    hingeY + (EXPLODE.lid.y - hingeY) * e,
-    hingeZ + (EXPLODE.lid.z - hingeZ) * e
+    hingeY + EXPLODE.lid.y * e,
+    hingeZ + EXPLODE.lid.z * e
   );
   lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
 
@@ -627,12 +661,12 @@ function pose() {
     c.group.rotation.y = -spread;
     c.group.position.set(
       Math.sin(spread) * 1.2,
-      c.baseY + follow * FAN_LIFT * (0.2 + k * 0.18) + e * k * 1.2,
+      c.baseY + follow * FAN_LIFT * (0.2 + k * 0.18) + e * k * 1.1,
       (1 - Math.cos(spread)) * 2.4 - ez
     );
   }
 
-  dims.visible = e < 0.35;
+  dims.visible = e < 0.25;
 
   openEl.value = String(Math.round(openT * 100));
   openLbl.textContent = `${Math.round(openT * 100)}%`;
@@ -663,7 +697,7 @@ btnExplode.onclick = () => {
   explode = !explode;
   btnExplode.classList.toggle('on', explode);
   if (explode) {
-    goOpen(0);
+    goOpen(1); // lid stands as back wall
     goFan(0);
     setView('explode');
   } else {
