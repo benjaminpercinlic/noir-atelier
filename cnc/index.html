@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell only. Silver CNC rim. Lid interior fully milled to the rim (black-ano plate zone) — no clip. Lift-off hinge. ~95°.</p>
+    <p>Shell only. All silver CNC finish. Lid interior fully milled to the rim — no clip. Lift-off hinge. ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -112,7 +112,7 @@
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
       <li><em>Hinge</em> pocket + sleeve · plate nests</li>
       <li><em>Stop</em> ~95°</li>
-      <li><em>Lid inner</em> full mill to rim · black ano</li>
+      <li><em>Lid inner</em> full mill to rim · silver</li>
       <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
       <li><em>Side margin</em> 3.2 L = R</li>
@@ -317,12 +317,6 @@ const matAnodized = new THREE.MeshPhysicalMaterial({
   color: 0xb8bcc6, metalness: 1, roughness: 0.4,
   clearcoat: 0.12, clearcoatRoughness: 0.5, envMapIntensity: 0.4,
 });
-// Lid inner mill — black-anodized plate zone (full pocket to rim)
-const matBlackAno = new THREE.MeshPhysicalMaterial({
-  color: 0x0c0c0e, metalness: 0.62, roughness: 0.42,
-  clearcoat: 0.1, clearcoatRoughness: 0.55, envMapIntensity: 0.28,
-  polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
-});
 
 function rbox(w, h, d, r, mat) {
   const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 6, r), mat);
@@ -520,12 +514,12 @@ parts.lid = lid;
 let lidShell = rbox(W, LID_H, D, 1.8, matSteel);
 lid.add(lidShell);
 
-// Full lid inner mill to silver rim — thin black-ano floor in the pocket (no clip)
+// Full lid inner mill to silver rim — silver floor in the pocket (no clip)
 const LID_RIM = 1.7;
 const LID_INNER_W = W - LID_RIM * 2;
 const LID_INNER_D = D - LID_RIM * 2;
 const LID_INNER_DEPTH = 1.45;
-const lidInner = rbox(LID_INNER_W - 0.15, 0.28, LID_INNER_D - 0.15, 0.85, matBlackAno);
+const lidInner = rbox(LID_INNER_W - 0.15, 0.28, LID_INNER_D - 0.15, 0.85, matAnodized);
 lidInner.position.set(0, -LID_H / 2 + LID_INNER_DEPTH - 0.12, 0);
 lidInner.castShadow = false;
 lid.add(lidInner);
