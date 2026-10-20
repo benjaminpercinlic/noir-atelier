@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell only. Black anodized interior. Lift-off barrel with longer milled pin. Each plate has a nest milled for the other half’s barrel so it closes flush. ~95°.</p>
+    <p>Shell only. Black anodized interior. Lift-off barrel + longer pin. Nest volume milled out of each plate so the other barrel seats flush. ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -125,7 +125,9 @@
   {
     "imports": {
       "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+      "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/",
+      "three-mesh-bvh": "https://unpkg.com/three-mesh-bvh@0.7.8/build/index.module.js",
+      "three-bvh-csg": "https://unpkg.com/three-bvh-csg@0.0.16/build/index.module.js"
     }
   }
   </script>
@@ -133,6 +135,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { Brush, Evaluator, SUBTRACTION } from 'three-bvh-csg';
 
 const errEl = document.getElementById('err');
 addEventListener('error', () => errEl.classList.add('show'));
@@ -334,27 +337,54 @@ const base = new THREE.Group();
 root.add(base);
 parts.base = base;
 
-const baseShell = rbox(W, BASE_H, D, 1.8, matSteel);
-baseShell.position.y = BASE_H / 2;
-base.add(baseShell);
-
-// Flat black anodized deck — no raised lip
-const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
-cavity.position.y = 0.28;
-base.add(cavity);
-
-// ── FULL-LENGTH LIFT-OFF (pocket + sleeve + plate nests) ───
-// Pin/sleeve join in the middle. Barrel half-protrudes → each
-// opposite plate gets a milled nest so the case closes flush.
+// ── FULL-LENGTH LIFT-OFF (pocket + sleeve + milled nests) ───
 const KNUCKLE_R = 1.2;
 const PIN_R = 0.55;
 const POCKET_R = 0.95;
-const STEP = 5.8;               // deeper sleeve engagement
+const STEP = 5.8;
 const BARREL = W - 6;
 const MALE_LEN = BARREL / 2;
 const FEMALE_LEN = BARREL / 2;
 const hingeZ = -D / 2 + KNUCKLE_R;
 const hingeY = BASE_H;
+
+const csg = new Evaluator();
+
+/** Subtract a cylinder from a shell mesh — real mill-out for the other barrel */
+function millNestOut(shell, nestX, nestY, nestZ, nestLen) {
+  const solid = new Brush(shell.geometry.clone());
+  solid.position.copy(shell.position);
+  solid.rotation.copy(shell.rotation);
+  solid.scale.copy(shell.scale);
+  solid.updateMatrixWorld(true);
+
+  const cutterGeo = new THREE.CylinderGeometry(KNUCKLE_R + 0.14, KNUCKLE_R + 0.14, nestLen, 36);
+  cutterGeo.rotateZ(Math.PI / 2);
+  const cutter = new Brush(cutterGeo);
+  cutter.position.set(nestX, nestY, nestZ);
+  cutter.updateMatrixWorld(true);
+
+  const result = csg.evaluate(solid, cutter, SUBTRACTION);
+  result.material = shell.material;
+  result.castShadow = true;
+  result.receiveShadow = true;
+  result.geometry.computeVertexNormals();
+  shell.parent.add(result);
+  shell.parent.remove(shell);
+  shell.geometry.dispose();
+  return result;
+}
+
+const baseShell = rbox(W, BASE_H, D, 1.8, matSteel);
+baseShell.position.y = BASE_H / 2;
+base.add(baseShell);
+// Wegfräsen: Nest für Lid-Female-Barrel (rechte Hälfte)
+millNestOut(baseShell, FEMALE_LEN / 2, hingeY, hingeZ, FEMALE_LEN - 0.3);
+
+// Flat black anodized deck — no raised lip
+const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
+cavity.position.y = 0.28;
+base.add(cavity);
 
 const hinge = new THREE.Group();
 base.add(hinge);
@@ -376,39 +406,14 @@ maleCap.rotation.y = Math.PI / 2;
 maleCap.position.set(-BARREL / 2, hingeY, hingeZ);
 hinge.add(maleCap);
 
-// Freigefräste Tasche in der Stoßfläche — Hülse füllt sie exakt
 const pocketVoid = cylX(POCKET_R, STEP, matAnodized);
 pocketVoid.position.set(-STEP / 2, hingeY, hingeZ);
 hinge.add(pocketVoid);
 
-// Längerer eingefräster Stift für besseren Halt
 const pinLen = STEP + 2.8;
 const axisPin = cylX(PIN_R, pinLen, matSteel);
 axisPin.position.set(-STEP + pinLen / 2, hingeY, hingeZ);
 hinge.add(axisPin);
-
-// Plate nests = half-pipes milled INTO the flat shells (not extra tubes).
-// Base nest receives lid female barrel; lid nest receives base male barrel.
-const nestMat = new THREE.MeshPhysicalMaterial({
-  color: 0x08080a, metalness: 0.3, roughness: 0.75, envMapIntensity: 0.1,
-  side: THREE.DoubleSide,
-  polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
-});
-function plateNest(len) {
-  // Half-cylinder trough carved into the plate edge
-  const geo = new THREE.CylinderGeometry(
-    KNUCKLE_R + 0.1, KNUCKLE_R + 0.1, len, 28, 1, false, 0, Math.PI
-  );
-  const m = new THREE.Mesh(geo, nestMat);
-  m.rotation.z = Math.PI / 2; // axis along X
-  return m;
-}
-
-// BASE plate: nest on the female side (right) — lid barrel seats here when closed
-const baseNest = plateNest(FEMALE_LEN - 0.5);
-baseNest.rotation.x = Math.PI; // open upward into / from top face
-baseNest.position.set(FEMALE_LEN / 2, hingeY, hingeZ);
-base.add(baseNest);
 
 // Kein Latch / Verschluss-Kläppchen
 
@@ -486,17 +491,14 @@ parts.lid = lid;
 
 const lidShell = rbox(W, LID_H, D, 1.8, matSteel);
 lid.add(lidShell);
-
-// LID plate: nest on the male side (left) — milled into the shell underside
-// so the base male barrel seats flush when closed
-const lidNest = plateNest(MALE_LEN - 0.5);
-// hinge axis in lid-local coords
-lidNest.position.set(
+// Wegfräsen: Nest für Base-Male-Barrel (linke Hälfte), in Lid-Lokalcoords
+millNestOut(
+  lidShell,
   -MALE_LEN / 2,
   -(LID_H / 2 + GAP),
-  -(D / 2 - 1.4)
+  -(D / 2 - 1.4),
+  MALE_LEN - 0.3
 );
-lid.add(lidNest);
 
 const lidInner = rbox(W - 3.4, 0.28, D - 3.4, 1.0, matAnodized);
 lidInner.position.set(0, -LID_H / 2 + 0.22, 0);
