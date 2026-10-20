@@ -487,14 +487,11 @@ const lidPivot = new THREE.Group();
 lidPivot.position.set(0, hingeY, hingeZ);
 root.add(lidPivot);
 
-// Female (lid): sleeve nose fills pocket; body continues full OD
+// Female (lid): sleeve nose fills pocket; open bore for the male pin (no tip)
 const female = new THREE.Group();
 const sleeveNose = cylX(POCKET_R - 0.02, STEP, matSteel);
 sleeveNose.position.x = -STEP / 2;
 female.add(sleeveNose);
-const sleeveBore = cylX(PIN_R * 1.08, pinLen + 0.4, matAnodized);
-sleeveBore.position.x = -STEP / 2 + 0.4;
-female.add(sleeveBore);
 const femaleBody = cylX(KNUCKLE_R, Math.max(1, FEMALE_LEN - STEP), matSteel);
 femaleBody.position.x = (FEMALE_LEN - STEP) / 2;
 female.add(femaleBody);
@@ -503,6 +500,25 @@ femaleCap.rotation.y = -Math.PI / 2;
 femaleCap.position.x = FEMALE_LEN - STEP;
 femaleCap.castShadow = false;
 female.add(femaleCap);
+
+// Open bore mouth — pin from base seats here (hole, not a tip)
+const matBore = new THREE.MeshPhysicalMaterial({
+  color: 0x2e3238, metalness: 0.7, roughness: 0.62, envMapIntensity: 0.25,
+});
+const boreMouth = new THREE.Mesh(new THREE.CircleGeometry(PIN_R * 1.15, 28), matBore);
+boreMouth.rotation.y = Math.PI / 2; // faces toward male pin (−X)
+boreMouth.position.x = -STEP + 0.02;
+boreMouth.castShadow = false;
+female.add(boreMouth);
+const boreRim = new THREE.Mesh(
+  new THREE.RingGeometry(PIN_R * 1.15, POCKET_R - 0.08, 28),
+  matSteel
+);
+boreRim.rotation.y = Math.PI / 2;
+boreRim.position.x = -STEP + 0.03;
+boreRim.castShadow = false;
+female.add(boreRim);
+
 female.position.set(0, 0, 0);
 lidPivot.add(female);
 
