@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell only. All silver CNC finish. Lift-off barrel + longer pin. Nest milled so the other barrel seats flush. ~95°.</p>
+    <p>Silver rim + black-anodized inner plates (two Alu parts). Outer recesses black. Bill clip recessed flush in lid. Lift-off hinge. ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -100,8 +100,10 @@
     <h2>Parts</h2>
     <label><input type="checkbox" data-part="base" checked /> Base shell</label>
     <label><input type="checkbox" data-part="lid" checked /> Lid shell</label>
-    <label><input type="checkbox" data-part="wells" checked /> Recesses</label>
+    <label><input type="checkbox" data-part="inners" checked /> Black inner plates</label>
+    <label><input type="checkbox" data-part="wells" checked /> Outer recesses</label>
     <label><input type="checkbox" data-part="hinge" checked /> Lift-off hinge</label>
+    <label><input type="checkbox" data-part="clip" checked /> Bill clip (flush)</label>
     <label><input type="checkbox" data-part="lip" checked /> Step lip</label>
   </aside>
 
@@ -109,8 +111,10 @@
     <h2>Specs (mm)</h2>
     <ul>
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
-      <li><em>Hinge</em> pocket + sleeve · plate nests</li>
+      <li><em>Finish</em> silver rim · black ano plates</li>
+      <li><em>Hinge</em> lift-off · pocket + sleeve</li>
       <li><em>Stop</em> ~95°</li>
+      <li><em>Bill clip</em> recessed flush in lid</li>
       <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
       <li><em>Side margin</em> 3.2 L = R</li>
@@ -299,21 +303,18 @@ pedestal.receiveShadow = true;
 pedestal.castShadow = true;
 scene.add(pedestal);
 
-// Outer shell — original steel tone (bright studio only)
+// Silver rim / outer shell
 const matSteel = new THREE.MeshPhysicalMaterial({
   color: 0xb8bcc6, metalness: 1, roughness: 0.38,
   clearcoat: 0.14, clearcoatRoughness: 0.5, envMapIntensity: 0.42,
 });
-const matWell = new THREE.MeshPhysicalMaterial({
-  color: 0xb4b8c0, metalness: 1, roughness: 0.4,
-  clearcoat: 0.12, envMapIntensity: 0.4,
+// Black anodized Alu — inner plates + outer recess panels
+const matBlackAno = new THREE.MeshPhysicalMaterial({
+  color: 0x0c0c0e, metalness: 0.62, roughness: 0.42,
+  clearcoat: 0.1, clearcoatRoughness: 0.55, envMapIntensity: 0.28,
   polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
 });
-// Interior / pockets — same silver as the shell
-const matAnodized = new THREE.MeshPhysicalMaterial({
-  color: 0xb8bcc6, metalness: 1, roughness: 0.4,
-  clearcoat: 0.12, clearcoatRoughness: 0.5, envMapIntensity: 0.4,
-});
+const matWell = matBlackAno;
 
 function rbox(w, h, d, r, mat) {
   const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 6, r), mat);
@@ -386,10 +387,13 @@ let baseShell = rbox(W, BASE_H, D, 1.8, matSteel);
 baseShell.position.y = BASE_H / 2;
 base.add(baseShell);
 
-// Flat black anodized deck — no raised lip
-const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
-cavity.position.y = 0.28;
+// Black-anodized inner plate (separate Alu part in silver rim)
+const inners = [];
+const cavity = rbox(W - 3.4, 0.35, D - 3.4, 1.0, matBlackAno);
+cavity.position.y = 0.3;
 base.add(cavity);
+inners.push(cavity);
+parts.inners = { visible: true };
 
 const hinge = new THREE.Group();
 base.add(hinge);
@@ -411,7 +415,7 @@ maleCap.rotation.y = Math.PI / 2;
 maleCap.position.set(-BARREL / 2, hingeY, hingeZ);
 hinge.add(maleCap);
 
-const pocketVoid = cylX(POCKET_R, STEP, matAnodized);
+const pocketVoid = cylX(POCKET_R, STEP, matSteel);
 pocketVoid.position.set(-STEP / 2, hingeY, hingeZ);
 hinge.add(pocketVoid);
 
@@ -427,19 +431,19 @@ const wellW = W - WELL_INSET * 2;
 const wellD = D - WELL_INSET * 2;
 const wellMeshes = [];
 
-const bottomWell = rbox(wellW, WELL_DEPTH, wellD, 0.9, matWell);
+const bottomWell = rbox(wellW, WELL_DEPTH, wellD, 0.9, matBlackAno);
 bottomWell.position.set(0, WELL_DEPTH * 0.45, 0);
 base.add(bottomWell);
 wellMeshes.push(bottomWell);
 
-// Bottom marks: same clean recess as top, N°01 + serial (placement TBD)
+// Bottom marks on black panel
 function makeMark(text, planeW, planeH, fontPx) {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 128;
   const ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
-  ctx.fillStyle = '#3e424a';
+  ctx.fillStyle = '#c8ccd4';
   ctx.font = `500 ${fontPx}px "Cormorant Garamond", serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -476,7 +480,7 @@ const female = new THREE.Group();
 const sleeveNose = cylX(POCKET_R - 0.02, STEP, matSteel);
 sleeveNose.position.x = -STEP / 2;
 female.add(sleeveNose);
-const sleeveBore = cylX(PIN_R * 1.08, pinLen + 0.4, matAnodized);
+const sleeveBore = cylX(PIN_R * 1.08, pinLen + 0.4, matSteel);
 sleeveBore.position.x = -STEP / 2 + 0.4;
 female.add(sleeveBore);
 const femaleBody = cylX(KNUCKLE_R, Math.max(1, FEMALE_LEN - STEP), matSteel);
@@ -497,14 +501,33 @@ parts.lid = lid;
 let lidShell = rbox(W, LID_H, D, 1.8, matSteel);
 lid.add(lidShell);
 
-const lidInner = rbox(W - 3.4, 0.28, D - 3.4, 1.0, matAnodized);
-lidInner.position.set(0, -LID_H / 2 + 0.22, 0);
+// Black-anodized lid inner plate (separate Alu part)
+const lidInner = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matBlackAno);
+lidInner.position.set(0, -LID_H / 2 + 0.2, 0);
 lid.add(lidInner);
+inners.push(lidInner);
 
-const topWell = rbox(wellW, WELL_DEPTH, wellD, 0.9, matWell);
+const topWell = rbox(wellW, WELL_DEPTH, wellD, 0.9, matBlackAno);
 topWell.position.set(0, LID_H / 2 - WELL_DEPTH * 0.45, 0);
 lid.add(topWell);
 wellMeshes.push(topWell);
+
+// Bill clip pocket — recessed so bar is flush with lid inner plane (won't hit cards)
+const CLIP_POCKET_H = 1.15;
+const clipPocket = rbox(38, CLIP_POCKET_H, 9.5, 0.5, matBlackAno);
+clipPocket.position.set(-14, -LID_H / 2 + CLIP_POCKET_H / 2 + 0.02, 2);
+lid.add(clipPocket);
+inners.push(clipPocket);
+const billClip = new THREE.Group();
+const clipBar = box(0.55, 0.28, 8.2, matSteel);
+clipBar.position.set(0, 0, 0);
+const clipArm = box(12, 0.22, 0.55, matSteel);
+clipArm.position.set(5.5, 0.05, 0);
+billClip.add(clipBar, clipArm);
+// Flush with lid inner face (y ≈ -LID_H/2 + 0.2)
+billClip.position.set(-14, -LID_H / 2 + 0.22, 2);
+lid.add(billClip);
+parts.clip = billClip;
 
 const stepLip = box(W - 10, 1.2, 3.0, matSteel);
 stepLip.position.set(0, -LID_H / 2 + 0.3, D / 2 - 2.2);
@@ -668,6 +691,10 @@ document.querySelectorAll('.parts input').forEach((el) => {
   el.addEventListener('change', () => {
     if (el.dataset.part === 'wells') {
       for (const m of wellMeshes) m.visible = el.checked;
+      return;
+    }
+    if (el.dataset.part === 'inners') {
+      for (const m of inners) m.visible = el.checked;
       return;
     }
     const p = parts[el.dataset.part];
