@@ -13,7 +13,7 @@
       --panel: rgba(14,14,16,0.88); --line: rgba(196,165,116,0.2);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #0c0c0e; color: var(--text); font-family: 'Outfit', system-ui, sans-serif; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #2c2c30; color: var(--text); font-family: 'Outfit', system-ui, sans-serif; }
     #c { display: block; width: 100%; height: 100%; }
     .err { display: none; position: fixed; inset: 0; z-index: 99; place-items: center; background: #0c0c0e; text-align: center; padding: 32px; }
     .err.show { display: grid; }
@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell + 3 card cradles. Top cradle has a rough grip to thumb-fan; lower cradles follow on the pivot. No latch flap. Recesses top &amp; bottom for inserts.</p>
+    <p>Shell + 3 cradles (top cradle rough grip). Recess top &amp; bottom — bottom has N°01 + serial placeholder (placement TBD). No latch flap.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnFan">Fan</button>
@@ -116,6 +116,7 @@
     <h2>Specs (mm)</h2>
     <ul>
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
+      <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
       <li><em>Side margin</em> 3.2 L = R</li>
       <li><em>Base H</em> 4.4 · <em>Lid H</em> 4.0</li>
@@ -174,44 +175,52 @@ renderer.toneMappingExposure = 1.22;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-const BG = 0x0b0b0d;
+const BG = 0x2c2c30;
 scene.background = new THREE.Color(BG);
-scene.fog = new THREE.Fog(0x0b0b0d, 120, 320);
+scene.fog = new THREE.Fog(0x2c2c30, 180, 420);
 
-function makeDarkStudioEnv() {
+function makeBrightStudioEnv() {
   const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0x050506);
+  envScene.background = new THREE.Color(0xb8b4ae);
   const g = new THREE.Mesh(
-    new THREE.PlaneGeometry(40, 40),
-    new THREE.MeshBasicMaterial({ color: 0x101012 })
+    new THREE.PlaneGeometry(50, 50),
+    new THREE.MeshBasicMaterial({ color: 0xe8e4dc })
   );
   g.rotation.x = -Math.PI / 2;
   g.position.y = -2;
   envScene.add(g);
   const bounceL = new THREE.Mesh(
-    new THREE.PlaneGeometry(6, 10),
-    new THREE.MeshBasicMaterial({ color: 0x3a3834 })
+    new THREE.PlaneGeometry(10, 14),
+    new THREE.MeshBasicMaterial({ color: 0xf5f2ea })
   );
-  bounceL.position.set(-10, 4, 0);
+  bounceL.position.set(-12, 5, 0);
   bounceL.rotation.y = Math.PI / 2;
   envScene.add(bounceL);
   const bounceR = new THREE.Mesh(
-    new THREE.PlaneGeometry(5, 8),
-    new THREE.MeshBasicMaterial({ color: 0x2e2c2a })
+    new THREE.PlaneGeometry(10, 14),
+    new THREE.MeshBasicMaterial({ color: 0xeee8e0 })
   );
-  bounceR.position.set(10, 3, 2);
+  bounceR.position.set(12, 5, 2);
   bounceR.rotation.y = -Math.PI / 2;
   envScene.add(bounceR);
+  const ceil = new THREE.Mesh(
+    new THREE.PlaneGeometry(40, 40),
+    new THREE.MeshBasicMaterial({ color: 0xffffff })
+  );
+  ceil.rotation.x = Math.PI / 2;
+  ceil.position.y = 14;
+  envScene.add(ceil);
   envScene.add(new THREE.Mesh(
-    new THREE.BoxGeometry(30, 20, 30),
-    new THREE.MeshBasicMaterial({ color: 0x121214, side: THREE.BackSide })
+    new THREE.BoxGeometry(40, 24, 40),
+    new THREE.MeshBasicMaterial({ color: 0xd8d4cc, side: THREE.BackSide })
   ));
   return envScene;
 }
 
 const pmrem = new THREE.PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(makeDarkStudioEnv(), 0.08).texture;
-scene.environmentIntensity = 0.32;
+scene.environment = pmrem.fromScene(makeBrightStudioEnv(), 0.04).texture;
+scene.environmentIntensity = 0.85;
+renderer.toneMappingExposure = 1.35;
 
 const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.5, 600);
 const views = {
@@ -233,43 +242,43 @@ controls.minDistance = 55;
 controls.maxDistance = 240;
 controls.maxPolarAngle = Math.PI * 0.92;
 
-scene.add(new THREE.HemisphereLight(0xd0c8bc, 0x0a0a0c, 0.48));
-scene.add(new THREE.AmbientLight(0x2a2a30, 0.32));
+scene.add(new THREE.HemisphereLight(0xf5f2ea, 0x8a8680, 1.15));
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
 
-const spot = new THREE.SpotLight(0xfff7ef, 110, 300, Math.PI / 3.6, 0.72, 1.05);
-spot.position.set(28, 110, 55);
+const spot = new THREE.SpotLight(0xfffaf4, 160, 320, Math.PI / 3.2, 0.55, 1.0);
+spot.position.set(35, 120, 60);
 spot.target.position.set(0, 7, 0);
 spot.castShadow = true;
-spot.shadow.mapSize.set(4096, 4096);
+spot.shadow.mapSize.set(2048, 2048);
 spot.shadow.bias = -0.0001;
-spot.shadow.normalBias = 0.018;
-spot.shadow.radius = 4;
+spot.shadow.normalBias = 0.02;
+spot.shadow.radius = 6;
 scene.add(spot);
 scene.add(spot.target);
 
-const spot2 = new THREE.SpotLight(0xfffaf4, 75, 260, Math.PI / 3.4, 0.75, 1.1);
-spot2.position.set(-40, 85, 45);
+const spot2 = new THREE.SpotLight(0xffffff, 120, 280, Math.PI / 3.0, 0.6, 1.0);
+spot2.position.set(-45, 95, 50);
 spot2.target.position.set(0, 8, 2);
 scene.add(spot2);
 scene.add(spot2.target);
 
-const fill = new THREE.SpotLight(0xf5efe4, 95, 220, Math.PI / 3.2, 0.68, 1.05);
-fill.position.set(0, 55, 95);
+const fill = new THREE.SpotLight(0xfff8f0, 140, 240, Math.PI / 2.8, 0.55, 1.0);
+fill.position.set(0, 60, 110);
 fill.target.position.set(0, 8, 0);
 scene.add(fill);
 scene.add(fill.target);
 
-const rim = new THREE.DirectionalLight(0xb8c4d4, 0.55);
-rim.position.set(85, 40, -40);
+const rim = new THREE.DirectionalLight(0xffffff, 0.85);
+rim.position.set(90, 50, -30);
 scene.add(rim);
 
-const back = new THREE.DirectionalLight(0x8a909c, 0.28);
-back.position.set(-60, 50, -80);
+const back = new THREE.DirectionalLight(0xe8eef5, 0.55);
+back.position.set(-70, 55, -70);
 scene.add(back);
 
 const pool = new THREE.Mesh(
   new THREE.CircleGeometry(56, 64),
-  new THREE.MeshBasicMaterial({ color: 0xd4c8b4, transparent: true, opacity: 0.085 })
+  new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.12 })
 );
 pool.rotation.x = -Math.PI / 2;
 pool.position.y = 2.35;
@@ -277,7 +286,7 @@ scene.add(pool);
 
 const floor = new THREE.Mesh(
   new THREE.CircleGeometry(280, 96),
-  new THREE.MeshStandardMaterial({ color: 0x121214, roughness: 0.92, metalness: 0.05, envMapIntensity: 0.12 })
+  new THREE.MeshStandardMaterial({ color: 0x3a3a3e, roughness: 0.9, metalness: 0.05, envMapIntensity: 0.2 })
 );
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
@@ -285,25 +294,25 @@ scene.add(floor);
 
 const pedestal = new THREE.Mesh(
   new THREE.CylinderGeometry(42, 46, 2.2, 80),
-  new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.88, metalness: 0.08, envMapIntensity: 0.15 })
+  new THREE.MeshStandardMaterial({ color: 0x4a4a4e, roughness: 0.85, metalness: 0.08, envMapIntensity: 0.2 })
 );
 pedestal.position.y = 1.1;
 pedestal.receiveShadow = true;
 pedestal.castShadow = true;
 scene.add(pedestal);
 
+// Satin stainless — matte CNC look, not black mirror chrome
 const matSteel = new THREE.MeshPhysicalMaterial({
-  color: 0xb8bcc6, metalness: 1, roughness: 0.38,
-  clearcoat: 0.14, clearcoatRoughness: 0.5, envMapIntensity: 0.42,
+  color: 0xcfd3db, metalness: 0.78, roughness: 0.52,
+  clearcoat: 0.04, clearcoatRoughness: 0.72, envMapIntensity: 0.42,
 });
 const matHinge = new THREE.MeshPhysicalMaterial({
-  color: 0x9aa0aa, metalness: 1, roughness: 0.32,
-  clearcoat: 0.18, envMapIntensity: 0.5,
+  color: 0xc4c8d0, metalness: 0.8, roughness: 0.48,
+  clearcoat: 0.05, envMapIntensity: 0.45,
 });
-// Etwas dunkler = flache Mulde im Metall (kein Insert-Ghost)
 const matWell = new THREE.MeshPhysicalMaterial({
-  color: 0x9aa0aa, metalness: 1, roughness: 0.48,
-  clearcoat: 0.1, envMapIntensity: 0.32,
+  color: 0xb8bcc4, metalness: 0.72, roughness: 0.58,
+  clearcoat: 0.03, envMapIntensity: 0.35,
   polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
 });
 
@@ -362,6 +371,40 @@ const bottomWell = rbox(wellW, WELL_DEPTH, wellD, 0.9, matWell);
 bottomWell.position.set(0, WELL_DEPTH * 0.45, 0);
 base.add(bottomWell);
 wellMeshes.push(bottomWell);
+
+// Bottom marks: same clean recess as top, N°01 + serial (placement TBD)
+function makeMark(text, planeW, planeH, fontPx) {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.fillStyle = '#3e424a';
+  ctx.font = `500 ${fontPx}px "Cormorant Garamond", serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, c.width / 2, c.height / 2);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(planeW, planeH),
+    new THREE.MeshBasicMaterial({
+      map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+    })
+  );
+  return mesh;
+}
+const bottomMarks = new THREE.Group();
+base.add(bottomMarks);
+const markN01 = makeMark('N°01', 14, 4.2, 72);
+markN01.rotation.x = Math.PI / 2;
+markN01.position.set(-wellW / 2 + 9, -0.02, wellD / 2 - 5);
+bottomMarks.add(markN01);
+const markSerial = makeMark('1-0001', 18, 3.6, 56);
+markSerial.rotation.x = Math.PI / 2;
+markSerial.position.set(wellW / 2 - 11, -0.02, -wellD / 2 + 4.5);
+bottomMarks.add(markSerial);
+wellMeshes.push(bottomMarks);
 
 // ── LID SHELL ──────────────────────────────────────────────
 const lidPivot = new THREE.Group();
@@ -442,6 +485,70 @@ for (let i = 0; i < N; i++) {
 const stopWall = box(1.2, 2.8, 8, matClipEdge);
 stopWall.position.set(FAN_X - 2, BASE_H + 0.5, FAN_Z + 10.5);
 cradlesRoot.add(stopWall);
+
+// ── DIMENSION OVERLAYS (outer envelope) ────────────────────
+function makeDimLabel(text) {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 512, 128);
+  ctx.fillStyle = 'rgba(232, 228, 220, 0.95)';
+  ctx.font = '500 44px Outfit, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 256, 64);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.Mesh(
+    new THREE.PlaneGeometry(26, 6.5),
+    new THREE.MeshBasicMaterial({
+      map: tex, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
+    })
+  );
+}
+function dimSeg(a, b) {
+  return new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([a, b]),
+    new THREE.LineBasicMaterial({ color: 0xc4a574, transparent: true, opacity: 0.75 })
+  );
+}
+function dimTick(p, ax, len = 2.2) {
+  const o = new THREE.Vector3();
+  o[ax] = len;
+  return dimSeg(p.clone().sub(o), p.clone().add(o));
+}
+
+const dims = new THREE.Group();
+root.add(dims);
+const yOff = -2.2;
+const zFront = D / 2 + 10;
+const xSide = W / 2 + 10;
+const hTop = BASE_H + LID_H + GAP;
+
+dims.add(dimSeg(new THREE.Vector3(-W / 2, yOff, zFront), new THREE.Vector3(W / 2, yOff, zFront)));
+dims.add(dimTick(new THREE.Vector3(-W / 2, yOff, zFront), 'z'));
+dims.add(dimTick(new THREE.Vector3(W / 2, yOff, zFront), 'z'));
+const lblW = makeDimLabel('92.0 mm');
+lblW.position.set(0, yOff + 3.5, zFront + 4);
+dims.add(lblW);
+
+dims.add(dimSeg(new THREE.Vector3(xSide, yOff, -D / 2), new THREE.Vector3(xSide, yOff, D / 2)));
+dims.add(dimTick(new THREE.Vector3(xSide, yOff, -D / 2), 'x'));
+dims.add(dimTick(new THREE.Vector3(xSide, yOff, D / 2), 'x'));
+const lblD = makeDimLabel('60.4 mm');
+lblD.position.set(xSide + 5, yOff + 3.5, 0);
+lblD.rotation.y = -Math.PI / 2;
+dims.add(lblD);
+
+const xH = -W / 2 - 10;
+dims.add(dimSeg(new THREE.Vector3(xH, 0, D / 2 + 2), new THREE.Vector3(xH, hTop, D / 2 + 2)));
+dims.add(dimTick(new THREE.Vector3(xH, 0, D / 2 + 2), 'z'));
+dims.add(dimTick(new THREE.Vector3(xH, hTop, D / 2 + 2), 'z'));
+const lblH = makeDimLabel('~8.5 mm');
+lblH.position.set(xH - 5, hTop / 2, D / 2 + 2);
+lblH.rotation.y = Math.PI / 2;
+dims.add(lblH);
 
 // ── UI ─────────────────────────────────────────────────────
 function easeInOut(t) {
@@ -561,7 +668,8 @@ addEventListener('resize', () => {
 });
 
 pose();
-setTimeout(() => { goOpen(1); goFan(1); setView('fan'); }, 700);
+// Start closed so satin surface + bottom marks read clearly
+setTimeout(() => { setView('hero'); }, 200);
 
 let last = performance.now();
 function frame(now) {
