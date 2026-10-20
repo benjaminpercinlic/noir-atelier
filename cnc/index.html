@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell only. All silver CNC finish. Lift-off barrel + longer pin. Nest milled so the other barrel seats flush. ~95°.</p>
+    <p>Shell only. All silver CNC finish. Lid has a milled clip pocket so the bill clip sits flush and the shell still closes. Lift-off hinge. ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -101,6 +101,7 @@
     <label><input type="checkbox" data-part="base" checked /> Base shell</label>
     <label><input type="checkbox" data-part="lid" checked /> Lid shell</label>
     <label><input type="checkbox" data-part="wells" checked /> Recesses</label>
+    <label><input type="checkbox" data-part="clip" checked /> Bill clip pocket</label>
     <label><input type="checkbox" data-part="hinge" checked /> Lift-off hinge</label>
     <label><input type="checkbox" data-part="lip" checked /> Step lip</label>
   </aside>
@@ -111,6 +112,7 @@
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
       <li><em>Hinge</em> pocket + sleeve · plate nests</li>
       <li><em>Stop</em> ~95°</li>
+      <li><em>Clip pocket</em> lid only · flush close</li>
       <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
       <li><em>Side margin</em> 3.2 L = R</li>
@@ -505,6 +507,35 @@ const topWell = rbox(wellW, WELL_DEPTH, wellD, 0.9, matWell);
 topWell.position.set(0, LID_H / 2 - WELL_DEPTH * 0.45, 0);
 lid.add(topWell);
 wellMeshes.push(topWell);
+
+// Lid-only bill-clip pocket — milled so clip sits flush; shell still closes
+const CLIP_X = -(W - 4) * 0.36;
+const CLIP_Z = -9.5;
+const CLIP_POCKET_H = 0.95;
+const clipGroup = new THREE.Group();
+lid.add(clipGroup);
+parts.clip = clipGroup;
+
+const clipPocket = rbox(2.4, CLIP_POCKET_H, 12.5, 0.35, matWell);
+clipPocket.position.set(CLIP_X, -LID_H / 2 + CLIP_POCKET_H / 2 + 0.02, CLIP_Z);
+clipGroup.add(clipPocket);
+
+// Wider shallow cash clearance under the bar (bills tuck under clip)
+const cashClear = rbox(18, 0.55, 28, 0.6, matWell);
+cashClear.position.set(CLIP_X + 6, -LID_H / 2 + 0.55 / 2 + 0.02, CLIP_Z + 2);
+clipGroup.add(cashClear);
+
+const billClip = new THREE.Group();
+const clipBar = rbox(0.65, 0.26, 10, 0.1, matSteel);
+const clipTip = rbox(0.65, 0.2, 1.2, 0.08, matSteel);
+clipTip.position.set(0, -0.04, 5.1);
+clipTip.rotation.x = 0.35;
+const clipRivet = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.28, 12), matSteel);
+clipRivet.position.set(0, 0.02, -4.7);
+billClip.add(clipBar, clipTip, clipRivet);
+// Flush with lid inner plane — no stand-off that would block closing
+billClip.position.set(CLIP_X, -LID_H / 2 + 0.22, CLIP_Z);
+clipGroup.add(billClip);
 
 const stepLip = box(W - 10, 1.2, 3.0, matSteel);
 stepLip.position.set(0, -LID_H / 2 + 0.3, D / 2 - 2.2);
