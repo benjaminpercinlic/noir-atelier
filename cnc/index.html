@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell only. Black anodized interior. Lift-off barrel + longer pin. Nest volume milled out of each plate so the other barrel seats flush. ~95°.</p>
+    <p>Shell only. All silver CNC finish. Lift-off barrel + longer pin. Nest milled so the other barrel seats flush. ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -93,7 +93,7 @@
       <input id="open" type="range" min="0" max="100" value="0" />
       <span id="openLbl">0%</span>
     </div>
-    <div class="hint">Drag · Scroll · Space = open · Exploded = lift-off assemble</div>
+    <div class="hint">Drag · Scroll · Space = open</div>
   </aside>
 
   <aside class="parts">
@@ -151,12 +151,10 @@ const GAP = 0.12;
 const WELL_INSET = 3.0;
 const WELL_DEPTH = 0.35;
 const LID_MAX = THREE.MathUtils.degToRad(98);
-// Exploded assemble path (reverse = how it goes together):
-// 1) open lid  2) slide sleeve along pin axis  3) separate for view
 const EXPLODE = {
-  slideX: 26, // must clear pin engagement (~STEP+pin)
-  baseZ: 16,
-  lidZ: -18,
+  baseZ: 18,
+  lidZ: -24,
+  liftX: 18,
 };
 
 const canvas = document.getElementById('c');
@@ -304,14 +302,14 @@ const matSteel = new THREE.MeshPhysicalMaterial({
   clearcoat: 0.14, clearcoatRoughness: 0.5, envMapIntensity: 0.42,
 });
 const matWell = new THREE.MeshPhysicalMaterial({
-  color: 0x9aa0aa, metalness: 1, roughness: 0.48,
-  clearcoat: 0.1, envMapIntensity: 0.32,
+  color: 0xb4b8c0, metalness: 1, roughness: 0.4,
+  clearcoat: 0.12, envMapIntensity: 0.4,
   polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
 });
-// Black anodized aluminum — flat interior deck
+// Interior / pockets — same silver as the shell
 const matAnodized = new THREE.MeshPhysicalMaterial({
-  color: 0x050506, metalness: 0.35, roughness: 0.72,
-  clearcoat: 0.04, clearcoatRoughness: 0.8, envMapIntensity: 0.12,
+  color: 0xb8bcc6, metalness: 1, roughness: 0.4,
+  clearcoat: 0.12, clearcoatRoughness: 0.5, envMapIntensity: 0.4,
 });
 
 function rbox(w, h, d, r, mat) {
@@ -598,9 +596,6 @@ const tagLid = makePartTag('Lid  92 × 60.4 × 4.0');
 function easeInOut(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
-function stage01(e, a, b) {
-  return easeInOut(THREE.MathUtils.clamp((e - a) / (b - a), 0, 1));
-}
 
 let openT = 0, targetOpen = 0, animOpen = false;
 let explode = false, explodeT = 0, viewIdx = 0;
@@ -611,64 +606,33 @@ const btnOpen = document.getElementById('btnOpen');
 const btnExplode = document.getElementById('btnExplode');
 const btnView = document.getElementById('btnView');
 
-// Guide line: assembly axis (slide onto pin)
-const assembleGuide = new THREE.Line(
-  new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(-8, hingeY, hingeZ),
-    new THREE.Vector3(EXPLODE.slideX + 10, hingeY, hingeZ),
-  ]),
-  new THREE.LineDashedMaterial({
-    color: 0xc4a574, dashSize: 2.2, gapSize: 1.4, transparent: true, opacity: 0.85,
-  })
-);
-assembleGuide.computeLineDistances();
-assembleGuide.visible = false;
-root.add(assembleGuide);
-const assembleArrow = makeDimLabel('← slide onto pin');
-assembleArrow.scale.set(0.7, 0.7, 0.7);
-assembleArrow.visible = false;
-root.add(assembleArrow);
-
 function pose() {
   const lidE = easeInOut(openT);
-  const e = explodeT; // raw for staged assemble; ease inside stages
+  const e = easeInOut(explodeT);
 
-  // Assemble path (e: 0→1 explode, 1→0 = how it goes together):
-  // open lid → slide sleeve along pin → separate for view
-  const tOpen = stage01(e, 0.00, 0.28);
-  const tSlide = stage01(e, 0.28, 0.64);
-  const tSep = stage01(e, 0.64, 1.00);
-
-  const openEff = THREE.MathUtils.lerp(lidE, 1, tOpen);
+  const openEff = THREE.MathUtils.lerp(lidE, 1, e);
   lidPivot.rotation.x = -openEff * LID_MAX;
 
-  // Slide along pin axis while still coaxial (this is the real lift-off assemble)
-  const slideX = EXPLODE.slideX * tSlide;
-  base.position.set(0, 0, EXPLODE.baseZ * tSep);
+  base.position.set(0, 0, EXPLODE.baseZ * e);
   lidPivot.position.set(
-    slideX,
+    EXPLODE.liftX * e,
     hingeY,
-    hingeZ + (EXPLODE.lidZ - hingeZ) * tSep
+    THREE.MathUtils.lerp(hingeZ, EXPLODE.lidZ, e)
   );
   lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
 
-  const showGuide = tSlide > 0.05 && tSep < 0.85;
-  assembleGuide.visible = showGuide;
-  assembleArrow.visible = showGuide;
-  assembleArrow.position.set(slideX * 0.45 + 6, hingeY + 6, hingeZ);
-
-  dims.visible = e < 0.15;
-  partDims.visible = e > 0.55;
-  tagBase.position.set(0, 7, EXPLODE.baseZ * tSep + 2);
-  tagHinge.position.set(slideX * 0.25, 10, EXPLODE.baseZ * tSep * 0.2);
-  tagLid.position.set(slideX, 32, hingeZ + (EXPLODE.lidZ - hingeZ) * tSep + 8);
+  dims.visible = e < 0.2;
+  partDims.visible = e > 0.4;
+  tagBase.position.set(0, 7, EXPLODE.baseZ * e + 2);
+  tagHinge.position.set(EXPLODE.liftX * e * 0.35, 10, EXPLODE.baseZ * e * 0.2);
+  tagLid.position.set(EXPLODE.liftX * e, 32, EXPLODE.lidZ * e + 8);
 
   openEl.value = String(Math.round(openT * 100));
   openLbl.textContent = `${Math.round(openT * 100)}%`;
   btnOpen.textContent = openT > 0.5 ? 'Close' : 'Open';
   btnOpen.classList.toggle('on', openT > 0.12);
   btnExplode.classList.toggle('on', explode || e > 0.12);
-  btnExplode.textContent = (explode || e > 0.5) ? 'Assemble' : 'Exploded';
+  btnExplode.textContent = 'Exploded';
 }
 
 function goOpen(v) { targetOpen = THREE.MathUtils.clamp(v, 0, 1); animOpen = true; }
@@ -687,8 +651,7 @@ btnExplode.onclick = () => {
     goOpen(1);
     setView('explode');
   } else {
-    // Stay on explode cam while it slides back onto the pin
-    setTimeout(() => { if (!explode) setView('hero'); }, 900);
+    setView('hero');
   }
 };
 btnView.onclick = () => {
@@ -737,9 +700,7 @@ function frame(now) {
     openT += (targetOpen - openT) * Math.min(1, dt * k);
     if (Math.abs(targetOpen - openT) < 0.0005) { openT = targetOpen; animOpen = false; }
   }
-  // Slower assemble so the pin-slide reads clearly
-  const explodeK = explode ? 3.4 : 2.6;
-  explodeT += ((explode ? 1 : 0) - explodeT) * Math.min(1, dt * explodeK);
+  explodeT += ((explode ? 1 : 0) - explodeT) * Math.min(1, dt * 4.2);
   pose();
   controls.update();
   renderer.render(scene, camera);
