@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell only. Black anodized interior. Full-length lift-off barrel — pin &amp; bore milled in. One seam in the middle, sides closed. Opens to ~95°.</p>
+    <p>Shell only. Black anodized interior. Full-length lift-off: milled pocket + pin on base, matching sleeve on lid fills it exactly — one hairline. Sides closed. ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -109,7 +109,7 @@
     <h2>Specs (mm)</h2>
     <ul>
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
-      <li><em>Hinge</em> full-length lift-off · 1 seam</li>
+      <li><em>Hinge</em> milled pocket + sleeve fit</li>
       <li><em>Stop</em> ~95°</li>
       <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
@@ -343,17 +343,17 @@ const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
 cavity.position.y = 0.28;
 base.add(cavity);
 
-// ── FULL-LENGTH LIFT-OFF BARREL ────────────────────────────
-// One continuous look across the rear. Male (base) | Female (lid)
-// meet only in the middle. Pin & bore are milled in — sides closed,
-// nothing pushed through from the outside.
+// ── FULL-LENGTH LIFT-OFF (precision pocket + sleeve) ───────
+// Base: milled annular pocket around integral pin.
+// Lid: sleeve nose fills that pocket exactly → continuous barrel,
+// you barely see that anything was cut away. Sides closed.
 const KNUCKLE_R = 1.2;
 const PIN_R = 0.55;
-const BARREL = W - 6;           // nearly full width
-const SEAM = 0.12;              // single middle join
-const MALE_LEN = BARREL / 2 - SEAM / 2;
-const FEMALE_LEN = BARREL / 2 - SEAM / 2;
-const PIN_ENGAGE = FEMALE_LEN * 0.72; // milled pin reaches into female
+const POCKET_R = 0.95;          // free-milled around pin; sleeve OD matches
+const STEP = 3.2;               // engagement depth
+const BARREL = W - 6;
+const MALE_LEN = BARREL / 2;
+const FEMALE_LEN = BARREL / 2;
 const hingeZ = -D / 2 + KNUCKLE_R;
 const hingeY = BASE_H;
 
@@ -361,35 +361,31 @@ const hinge = new THREE.Group();
 base.add(hinge);
 parts.hinge = hinge;
 
-function barrelCap(x) {
-  const cap = new THREE.Mesh(
-    new THREE.CircleGeometry(KNUCKLE_R, 28),
-    matSteel
-  );
-  cap.rotation.y = Math.PI / 2;
-  cap.position.set(x, hingeY, hingeZ);
-  return cap;
+function cylX(r, len, mat) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 32), mat);
+  m.rotation.z = Math.PI / 2;
+  m.castShadow = true;
+  return m;
 }
 
-// Male half (base) — solid outer end, milled pin toward center
-const male = new THREE.Mesh(
-  new THREE.CylinderGeometry(KNUCKLE_R, KNUCKLE_R, MALE_LEN, 32),
-  matSteel
-);
-male.rotation.z = Math.PI / 2;
-male.position.set(-MALE_LEN / 2 - SEAM / 2, hingeY, hingeZ);
-male.castShadow = true;
+// Male body (base): x = [-MALE_LEN … 0], closed outer end
+const male = cylX(KNUCKLE_R, MALE_LEN, matSteel);
+male.position.set(-MALE_LEN / 2, hingeY, hingeZ);
 hinge.add(male);
-hinge.add(barrelCap(-BARREL / 2)); // closed left side — no through-pin
+const maleCap = new THREE.Mesh(new THREE.CircleGeometry(KNUCKLE_R, 28), matSteel);
+maleCap.rotation.y = Math.PI / 2;
+maleCap.position.set(-BARREL / 2, hingeY, hingeZ);
+hinge.add(maleCap);
 
-const axisPin = new THREE.Mesh(
-  new THREE.CylinderGeometry(PIN_R, PIN_R, PIN_ENGAGE, 20),
-  matSteel
-);
-axisPin.rotation.z = Math.PI / 2;
-// Pin starts inside male, protrudes past the seam into female bore
-axisPin.position.set(PIN_ENGAGE / 2 - SEAM / 2, hingeY, hingeZ);
-axisPin.castShadow = true;
+// Freigefräste Tasche in der Stoßfläche (x = [-STEP … 0]) — Hülse füllt sie exakt
+const pocketVoid = cylX(POCKET_R, STEP, matAnodized);
+pocketVoid.position.set(-STEP / 2, hingeY, hingeZ);
+hinge.add(pocketVoid);
+
+// Eingefräster Stift aus dem Taschenboden — ragt in die Hülse
+const pinLen = STEP + 1.0;
+const axisPin = cylX(PIN_R, pinLen, matSteel);
+axisPin.position.set(-STEP + pinLen / 2, hingeY, hingeZ);
 hinge.add(axisPin);
 
 // Kein Latch / Verschluss-Kläppchen
@@ -443,28 +439,24 @@ const lidPivot = new THREE.Group();
 lidPivot.position.set(0, hingeY, hingeZ);
 root.add(lidPivot);
 
-// Female half (lid) — milled bore from the seam side; outer end closed
+// Female (lid): sleeve nose fills pocket; body continues full OD
+// Assembled: nose in [-STEP…0], body in [0…FEMALE_LEN-STEP]
 const female = new THREE.Group();
-const femaleOuter = new THREE.Mesh(
-  new THREE.CylinderGeometry(KNUCKLE_R, KNUCKLE_R, FEMALE_LEN, 32),
-  matSteel
-);
-femaleOuter.rotation.z = Math.PI / 2;
-femaleOuter.castShadow = true;
-const femaleBore = new THREE.Mesh(
-  new THREE.CylinderGeometry(PIN_R * 1.12, PIN_R * 1.12, PIN_ENGAGE + 0.6, 16),
-  matAnodized
-);
-femaleBore.rotation.z = Math.PI / 2;
-// Bore only from the mating face — does not break through the outer end
-femaleBore.position.x = -(FEMALE_LEN - PIN_ENGAGE) / 2;
-female.add(femaleOuter, femaleBore);
-female.position.set(FEMALE_LEN / 2 + SEAM / 2, 0, 0);
-// Closed right side
+const sleeveNose = cylX(POCKET_R - 0.02, STEP, matSteel);
+sleeveNose.position.x = -STEP / 2;
+female.add(sleeveNose);
+const sleeveBore = cylX(PIN_R * 1.08, STEP + 0.4, matAnodized);
+sleeveBore.position.x = -STEP / 2;
+female.add(sleeveBore);
+const femaleBody = cylX(KNUCKLE_R, FEMALE_LEN - STEP, matSteel);
+femaleBody.position.x = (FEMALE_LEN - STEP) / 2;
+female.add(femaleBody);
 const femaleCap = new THREE.Mesh(new THREE.CircleGeometry(KNUCKLE_R, 28), matSteel);
 femaleCap.rotation.y = -Math.PI / 2;
-femaleCap.position.x = FEMALE_LEN / 2;
+femaleCap.position.x = FEMALE_LEN - STEP;
 female.add(femaleCap);
+// Group origin at seam plane (x=0) so nose sits in the pocket
+female.position.set(0, 0, 0);
 lidPivot.add(female);
 
 const lid = new THREE.Group();
@@ -565,7 +557,7 @@ function makePartTag(text) {
   return m;
 }
 const tagBase = makePartTag('Base  92 × 60.4 × 4.4');
-const tagHinge = makePartTag('Hinge  full-length · 1 seam');
+const tagHinge = makePartTag('Hinge  pocket + sleeve fit');
 const tagLid = makePartTag('Lid  92 × 60.4 × 4.0');
 
 // ── UI ─────────────────────────────────────────────────────
