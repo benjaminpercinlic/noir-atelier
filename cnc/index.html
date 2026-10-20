@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell only. Black anodized interior. Lift-off hinge in the center: fixed pin on base, sleeve on lid. One seam. Opens to ~95°.</p>
+    <p>Shell only. Black anodized interior. Full-length lift-off barrel — pin &amp; bore milled in. One seam in the middle, sides closed. Opens to ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -109,7 +109,7 @@
     <h2>Specs (mm)</h2>
     <ul>
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
-      <li><em>Hinge</em> lift-off · center · Ø1.2</li>
+      <li><em>Hinge</em> full-length lift-off · 1 seam</li>
       <li><em>Stop</em> ~95°</li>
       <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
@@ -152,7 +152,7 @@ const LID_MAX = THREE.MathUtils.degToRad(98);
 const EXPLODE = {
   baseZ: 18,
   lidZ: -24,
-  liftX: 14, // slide lid sleeve off the fixed pin
+  liftX: 18, // slide female half off the milled pin
 };
 
 const canvas = document.getElementById('c');
@@ -343,14 +343,17 @@ const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
 cavity.position.y = 0.28;
 base.add(cavity);
 
-// ── LIFT-OFF HINGE (center — like flag hinge) ──────────────
-// Base: male knuckle + fixed pin · Lid: female sleeve drops on
-// Assembled = one barrel, one seam in the middle
-const KNUCKLE_R = 1.25;
-const PIN_R = 0.6;
-const MALE_LEN = 9;
-const FEMALE_LEN = 9;
-const PIN_LEN = 14;
+// ── FULL-LENGTH LIFT-OFF BARREL ────────────────────────────
+// One continuous look across the rear. Male (base) | Female (lid)
+// meet only in the middle. Pin & bore are milled in — sides closed,
+// nothing pushed through from the outside.
+const KNUCKLE_R = 1.2;
+const PIN_R = 0.55;
+const BARREL = W - 6;           // nearly full width
+const SEAM = 0.12;              // single middle join
+const MALE_LEN = BARREL / 2 - SEAM / 2;
+const FEMALE_LEN = BARREL / 2 - SEAM / 2;
+const PIN_ENGAGE = FEMALE_LEN * 0.72; // milled pin reaches into female
 const hingeZ = -D / 2 + KNUCKLE_R;
 const hingeY = BASE_H;
 
@@ -358,23 +361,34 @@ const hinge = new THREE.Group();
 base.add(hinge);
 parts.hinge = hinge;
 
-// Male knuckle (base leaf)
+function barrelCap(x) {
+  const cap = new THREE.Mesh(
+    new THREE.CircleGeometry(KNUCKLE_R, 28),
+    matSteel
+  );
+  cap.rotation.y = Math.PI / 2;
+  cap.position.set(x, hingeY, hingeZ);
+  return cap;
+}
+
+// Male half (base) — solid outer end, milled pin toward center
 const male = new THREE.Mesh(
-  new THREE.CylinderGeometry(KNUCKLE_R, KNUCKLE_R, MALE_LEN, 28),
+  new THREE.CylinderGeometry(KNUCKLE_R, KNUCKLE_R, MALE_LEN, 32),
   matSteel
 );
 male.rotation.z = Math.PI / 2;
-male.position.set(-MALE_LEN / 2 - 0.15, hingeY, hingeZ);
+male.position.set(-MALE_LEN / 2 - SEAM / 2, hingeY, hingeZ);
 male.castShadow = true;
 hinge.add(male);
+hinge.add(barrelCap(-BARREL / 2)); // closed left side — no through-pin
 
-// Fixed pin (Achse) — sticks out of male into female
 const axisPin = new THREE.Mesh(
-  new THREE.CylinderGeometry(PIN_R, PIN_R, PIN_LEN, 20),
+  new THREE.CylinderGeometry(PIN_R, PIN_R, PIN_ENGAGE, 20),
   matSteel
 );
 axisPin.rotation.z = Math.PI / 2;
-axisPin.position.set(PIN_LEN / 2 - MALE_LEN / 2 - 0.15, hingeY, hingeZ);
+// Pin starts inside male, protrudes past the seam into female bore
+axisPin.position.set(PIN_ENGAGE / 2 - SEAM / 2, hingeY, hingeZ);
 axisPin.castShadow = true;
 hinge.add(axisPin);
 
@@ -429,21 +443,28 @@ const lidPivot = new THREE.Group();
 lidPivot.position.set(0, hingeY, hingeZ);
 root.add(lidPivot);
 
-// Female sleeve (Türlappen) — slides onto fixed pin
+// Female half (lid) — milled bore from the seam side; outer end closed
 const female = new THREE.Group();
 const femaleOuter = new THREE.Mesh(
-  new THREE.CylinderGeometry(KNUCKLE_R, KNUCKLE_R, FEMALE_LEN, 28),
+  new THREE.CylinderGeometry(KNUCKLE_R, KNUCKLE_R, FEMALE_LEN, 32),
   matSteel
 );
 femaleOuter.rotation.z = Math.PI / 2;
 femaleOuter.castShadow = true;
 const femaleBore = new THREE.Mesh(
-  new THREE.CylinderGeometry(PIN_R * 1.12, PIN_R * 1.12, FEMALE_LEN + 0.4, 16),
+  new THREE.CylinderGeometry(PIN_R * 1.12, PIN_R * 1.12, PIN_ENGAGE + 0.6, 16),
   matAnodized
 );
 femaleBore.rotation.z = Math.PI / 2;
+// Bore only from the mating face — does not break through the outer end
+femaleBore.position.x = -(FEMALE_LEN - PIN_ENGAGE) / 2;
 female.add(femaleOuter, femaleBore);
-female.position.set(FEMALE_LEN / 2 + 0.15, 0, 0);
+female.position.set(FEMALE_LEN / 2 + SEAM / 2, 0, 0);
+// Closed right side
+const femaleCap = new THREE.Mesh(new THREE.CircleGeometry(KNUCKLE_R, 28), matSteel);
+femaleCap.rotation.y = -Math.PI / 2;
+femaleCap.position.x = FEMALE_LEN / 2;
+female.add(femaleCap);
 lidPivot.add(female);
 
 const lid = new THREE.Group();
@@ -544,7 +565,7 @@ function makePartTag(text) {
   return m;
 }
 const tagBase = makePartTag('Base  92 × 60.4 × 4.4');
-const tagHinge = makePartTag('Hinge  lift-off Ø1.2');
+const tagHinge = makePartTag('Hinge  full-length · 1 seam');
 const tagLid = makePartTag('Lid  92 × 60.4 × 4.0');
 
 // ── UI ─────────────────────────────────────────────────────
