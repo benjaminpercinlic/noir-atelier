@@ -361,19 +361,14 @@ const hingeY = BASE_H;
 
 const csg = new Evaluator();
 
-/** Subtract a cylinder from a shell mesh — real mill-out for the other barrel */
-function millNestOut(shell, nestX, nestY, nestZ, nestLen) {
+/** Subtract a cutter brush from a shell mesh */
+function millOut(shell, cutter) {
   try {
     const solid = new Brush(shell.geometry.clone());
     solid.position.copy(shell.position);
     solid.rotation.copy(shell.rotation);
     solid.scale.copy(shell.scale);
     solid.updateMatrixWorld(true);
-
-    const cutterGeo = new THREE.CylinderGeometry(KNUCKLE_R + 0.14, KNUCKLE_R + 0.14, nestLen, 36);
-    cutterGeo.rotateZ(Math.PI / 2);
-    const cutter = new Brush(cutterGeo);
-    cutter.position.set(nestX, nestY, nestZ);
     cutter.updateMatrixWorld(true);
 
     const result = csg.evaluate(solid, cutter, SUBTRACTION);
@@ -386,9 +381,26 @@ function millNestOut(shell, nestX, nestY, nestZ, nestLen) {
     shell.geometry.dispose();
     return result;
   } catch (err) {
-    console.warn('millNestOut failed, keeping solid shell', err);
+    console.warn('millOut failed, keeping solid shell', err);
     return shell;
   }
+}
+
+/** Subtract a cylinder — nest for the other barrel */
+function millNestOut(shell, nestX, nestY, nestZ, nestLen) {
+  const cutterGeo = new THREE.CylinderGeometry(KNUCKLE_R + 0.14, KNUCKLE_R + 0.14, nestLen, 36);
+  cutterGeo.rotateZ(Math.PI / 2);
+  const cutter = new Brush(cutterGeo);
+  cutter.position.set(nestX, nestY, nestZ);
+  return millOut(shell, cutter);
+}
+
+/** Subtract lid inner pocket — leaves silver rim, room for black-ano floor */
+function millLidPocket(shell, pw, pd, depth) {
+  // Cutter slightly oversized + past open face so the cut is clean
+  const cutter = new Brush(new RoundedBoxGeometry(pw + 0.2, depth + 0.6, pd + 0.2, 4, 0.9));
+  cutter.position.set(0, -LID_H / 2 + (depth + 0.6) / 2 - 0.25, 0);
+  return millOut(shell, cutter);
 }
 
 let baseShell = rbox(W, BASE_H, D, 1.8, matSteel);
@@ -418,6 +430,7 @@ hinge.add(male);
 const maleCap = new THREE.Mesh(new THREE.CircleGeometry(KNUCKLE_R, 28), matSteel);
 maleCap.rotation.y = Math.PI / 2;
 maleCap.position.set(-BARREL / 2, hingeY, hingeZ);
+maleCap.castShadow = false;
 hinge.add(maleCap);
 
 const pocketVoid = cylX(POCKET_R, STEP, matAnodized);
@@ -494,6 +507,7 @@ female.add(femaleBody);
 const femaleCap = new THREE.Mesh(new THREE.CircleGeometry(KNUCKLE_R, 28), matSteel);
 femaleCap.rotation.y = -Math.PI / 2;
 femaleCap.position.x = FEMALE_LEN - STEP;
+femaleCap.castShadow = false;
 female.add(femaleCap);
 female.position.set(0, 0, 0);
 lidPivot.add(female);
@@ -506,13 +520,14 @@ parts.lid = lid;
 let lidShell = rbox(W, LID_H, D, 1.8, matSteel);
 lid.add(lidShell);
 
-// Full lid inner mill to the silver rim — black-ano zone, no clip
+// Full lid inner mill to silver rim — thin black-ano floor in the pocket (no clip)
 const LID_RIM = 1.7;
 const LID_INNER_W = W - LID_RIM * 2;
 const LID_INNER_D = D - LID_RIM * 2;
 const LID_INNER_DEPTH = 1.45;
-const lidInner = rbox(LID_INNER_W, LID_INNER_DEPTH, LID_INNER_D, 1.0, matBlackAno);
-lidInner.position.set(0, -LID_H / 2 + LID_INNER_DEPTH / 2 + 0.04, 0);
+const lidInner = rbox(LID_INNER_W - 0.15, 0.28, LID_INNER_D - 0.15, 0.85, matBlackAno);
+lidInner.position.set(0, -LID_H / 2 + LID_INNER_DEPTH - 0.12, 0);
+lidInner.castShadow = false;
 lid.add(lidInner);
 parts.lidInner = lidInner;
 
@@ -521,8 +536,8 @@ topWell.position.set(0, LID_H / 2 - WELL_DEPTH * 0.45, 0);
 lid.add(topWell);
 wellMeshes.push(topWell);
 
-const stepLip = box(W - 10, 1.2, 3.0, matSteel);
-stepLip.position.set(0, -LID_H / 2 + 0.3, D / 2 - 2.2);
+const stepLip = box(W - 10, 0.9, LID_RIM + 0.4, matSteel);
+stepLip.position.set(0, -LID_H / 2 + 0.35, D / 2 - LID_RIM / 2);
 lid.add(stepLip);
 parts.lip = stepLip;
 parts.wells = { visible: true };
@@ -702,8 +717,9 @@ addEventListener('resize', () => {
 pose();
 setTimeout(() => { setView('hero'); }, 200);
 
-// Mill nests after UI is live — CSG must not block Exploded
+// Mill pocket + nests after UI is live — CSG must not block Exploded
 setTimeout(() => {
+  lidShell = millLidPocket(lidShell, LID_INNER_W, LID_INNER_D, LID_INNER_DEPTH);
   baseShell = millNestOut(baseShell, FEMALE_LEN / 2, hingeY, hingeZ, FEMALE_LEN - 0.3);
   lidShell = millNestOut(
     lidShell,
