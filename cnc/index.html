@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell + 3 cradles. Flat black anodized interior. Clean barrel hinge (integral + one flush pin). Opens to ~95°.</p>
+    <p>Shell + 3 cradles. Black anodized interior. Barrel hinge works with hairline knuckle gaps + one flush pin (no welds). Opens to ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnFan">Fan</button>
@@ -116,7 +116,7 @@
     <h2>Specs (mm)</h2>
     <ul>
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
-      <li><em>Hinge</em> flush barrel + Ø1.1 pin</li>
+      <li><em>Hinge</em> 3-knuckle · hairline · Ø1.1</li>
       <li><em>Stop</em> ~95°</li>
       <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
@@ -161,13 +161,13 @@ const WELL_DEPTH = 0.35;
 const LID_MAX = THREE.MathUtils.degToRad(98);
 const FAN_STEP = THREE.MathUtils.degToRad(8.2);
 const FAN_LIFT = 0.55;
-// Exploded: all parts flat on the floor, same height, lined up toward the back
+// Exploded: floor parts same height → back; lid stands as rear wall
 const EXPLODE = {
-  base:    { x: 0, y: 0, z:  16 },
-  cradles: { x: 0, y: 0, z:   2 },
-  cradleZ: 5.5,
-  pin:     { x: 0, y: 0, z: -12 },
-  lid:     { x: 0, y: 0, z: -28 },
+  baseZ: 20,
+  cradlesZ: 6,
+  cradleStep: 5,
+  pinZ: -8,
+  lidZ: -26,
 };
 
 const canvas = document.getElementById('c');
@@ -238,7 +238,7 @@ const views = {
   top:  { pos: [0, 120, 8], target: [0, 6, 0] },
   bottom: { pos: [15, -70, 50], target: [0, 4, 0] },
   side: { pos: [130, 28, 0], target: [0, 8, 0] },
-  explode: { pos: [70, 95, 55], target: [0, 4, -6] },
+  explode: { pos: [95, 55, 70], target: [0, 18, -8] },
 };
 const viewKeys = ['hero', 'open', 'fan', 'top', 'bottom', 'side', 'explode'];
 camera.position.fromArray(views.hero.pos);
@@ -502,7 +502,7 @@ const matGold = new THREE.MeshPhysicalMaterial({
 });
 
 const cradlesRoot = new THREE.Group();
-base.add(cradlesRoot);
+root.add(cradlesRoot); // own root so explode can pull clear of base
 parts.cradles = cradlesRoot;
 
 const fanPivot = new THREE.Group();
@@ -643,54 +643,50 @@ function pose() {
   const fanE = easeInOut(fanT);
   const e = easeInOut(explodeT);
 
-  // Exploded: everything flat on the floor (same height), lined up back
-  const openEff = THREE.MathUtils.lerp(lidE, 0, e);
+  // Exploded: lid stands as rear wall; other parts flat, same height, toward camera
+  const openEff = THREE.MathUtils.lerp(lidE, 1, e);
   lidPivot.rotation.x = -openEff * LID_MAX;
 
-  base.position.set(0, 0, EXPLODE.base.z * e);
+  base.position.set(0, 0, EXPLODE.baseZ * e);
 
-  cradlesRoot.position.set(0, 0, EXPLODE.cradles.z * e);
+  cradlesRoot.position.set(0, 0, EXPLODE.cradlesZ * e);
 
-  // Pin at floor height with the shells, between cradles and lid
+  // Pin on the floor line, just in front of the standing lid
   pin.position.set(
     0,
-    THREE.MathUtils.lerp(hingeY, PIN_R + 0.3, e),
-    THREE.MathUtils.lerp(hingeZ, EXPLODE.pin.z, e)
+    THREE.MathUtils.lerp(hingeY, 1.1, e),
+    THREE.MathUtils.lerp(hingeZ, EXPLODE.pinZ, e)
   );
 
-  // Lid laid flat on the floor further back
+  // Lid pivot stays at hinge height so the plate stands upright at the back
   lidPivot.position.set(
     0,
-    THREE.MathUtils.lerp(hingeY, 0, e),
-    THREE.MathUtils.lerp(hingeZ, EXPLODE.lid.z, e)
+    hingeY,
+    THREE.MathUtils.lerp(hingeZ, EXPLODE.lidZ, e)
   );
-  lid.position.set(
-    0,
-    THREE.MathUtils.lerp(LID_H / 2 + GAP, LID_H / 2, e),
-    THREE.MathUtils.lerp(D / 2 - 1.4, 0, e)
-  );
+  lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
 
   for (const c of cradles) {
     const k = c.index;
     const lag = (N - 1 - k) * 0.07;
     const follow = smooth01(THREE.MathUtils.clamp((fanE - lag) / (1 - lag * 0.5), 0, 1)) * (1 - e);
     const spread = follow * FAN_STEP * k;
-    const ez = e * EXPLODE.cradleZ * (k + 1);
+    const ez = e * EXPLODE.cradleStep * (k + 1);
     c.group.rotation.y = -spread;
     c.group.position.set(
-      Math.sin(spread) * 1.2,
-      THREE.MathUtils.lerp(c.baseY + follow * FAN_LIFT * (0.2 + k * 0.18), 0.15 + k * 0.35, e),
+      Math.sin(spread) * 1.2 + e * (k - 1) * 14, // slight side spread so ×3 reads
+      THREE.MathUtils.lerp(c.baseY + follow * FAN_LIFT * (0.2 + k * 0.18), 0.2, e),
       (1 - Math.cos(spread)) * 2.4 - ez
     );
   }
 
   dims.visible = e < 0.2;
-  partDims.visible = e > 0.45;
-  const tagY = 8;
-  tagBase.position.set(0, tagY, EXPLODE.base.z * e + 4);
-  tagCradles.position.set(0, tagY, EXPLODE.cradles.z * e - EXPLODE.cradleZ * 2 * e);
-  tagPin.position.set(0, tagY, EXPLODE.pin.z * e);
-  tagLid.position.set(0, tagY, EXPLODE.lid.z * e);
+  partDims.visible = e > 0.4;
+  tagBase.position.set(0, 7, EXPLODE.baseZ * e + 2);
+  tagCradles.position.set(0, 7, EXPLODE.cradlesZ * e - 4);
+  tagPin.position.set(0, 7, EXPLODE.pinZ * e);
+  // Tag on the standing lid face
+  tagLid.position.set(0, 32, EXPLODE.lidZ * e + 8);
 
   openEl.value = String(Math.round(openT * 100));
   openLbl.textContent = `${Math.round(openT * 100)}%`;
@@ -721,7 +717,7 @@ btnExplode.onclick = () => {
   explode = !explode;
   btnExplode.classList.toggle('on', explode);
   if (explode) {
-    goOpen(0); // all flat on the floor
+    goOpen(1); // lid stands as rear wall
     goFan(0);
     setView('explode');
   } else {
