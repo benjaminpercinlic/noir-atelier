@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell + 3 cradles (top cradle rough grip). Recess top &amp; bottom — bottom has N°01 + serial placeholder (placement TBD). No latch flap.</p>
+    <p>Shell + 3 cradles (top cradle rough grip). Flat black anodized interior. Recess top &amp; bottom — bottom N°01 + serial (placement TBD). No latch flap.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnFan">Fan</button>
@@ -301,19 +301,24 @@ pedestal.receiveShadow = true;
 pedestal.castShadow = true;
 scene.add(pedestal);
 
-// Satin stainless — matte CNC look, not black mirror chrome
+// Outer shell — original steel tone (bright studio only)
 const matSteel = new THREE.MeshPhysicalMaterial({
-  color: 0xcfd3db, metalness: 0.78, roughness: 0.52,
-  clearcoat: 0.04, clearcoatRoughness: 0.72, envMapIntensity: 0.42,
+  color: 0xb8bcc6, metalness: 1, roughness: 0.38,
+  clearcoat: 0.14, clearcoatRoughness: 0.5, envMapIntensity: 0.42,
 });
 const matHinge = new THREE.MeshPhysicalMaterial({
-  color: 0xc4c8d0, metalness: 0.8, roughness: 0.48,
-  clearcoat: 0.05, envMapIntensity: 0.45,
+  color: 0x9aa0aa, metalness: 1, roughness: 0.32,
+  clearcoat: 0.18, envMapIntensity: 0.5,
 });
 const matWell = new THREE.MeshPhysicalMaterial({
-  color: 0xb8bcc4, metalness: 0.72, roughness: 0.58,
-  clearcoat: 0.03, envMapIntensity: 0.35,
+  color: 0x9aa0aa, metalness: 1, roughness: 0.48,
+  clearcoat: 0.1, envMapIntensity: 0.32,
   polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+});
+// Black anodized aluminum — flat interior deck
+const matAnodized = new THREE.MeshPhysicalMaterial({
+  color: 0x0a0a0c, metalness: 0.55, roughness: 0.58,
+  clearcoat: 0.06, clearcoatRoughness: 0.75, envMapIntensity: 0.22,
 });
 
 function rbox(w, h, d, r, mat) {
@@ -344,11 +349,10 @@ const baseShell = rbox(W, BASE_H, D, 1.8, matSteel);
 baseShell.position.y = BASE_H / 2;
 base.add(baseShell);
 
-const cavityCut = rbox(W - 3.4, 1.5, D - 3.4, 1.1, new THREE.MeshPhysicalMaterial({
-  color: 0x6a6e78, metalness: 0.85, roughness: 0.55, envMapIntensity: 0.25,
-}));
-cavityCut.position.y = BASE_H - 0.5;
-base.add(cavityCut);
+// Flat black anodized deck — no raised lip
+const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
+cavity.position.y = 0.28;
+base.add(cavity);
 
 const hingeZ = -D / 2 + 1.4;
 const hingeY = BASE_H;
@@ -419,6 +423,10 @@ parts.lid = lid;
 const lidShell = rbox(W, LID_H, D, 1.8, matSteel);
 lid.add(lidShell);
 
+const lidInner = rbox(W - 3.4, 0.28, D - 3.4, 1.0, matAnodized);
+lidInner.position.set(0, -LID_H / 2 + 0.22, 0);
+lid.add(lidInner);
+
 const topWell = rbox(wellW, WELL_DEPTH, wellD, 0.9, matWell);
 topWell.position.set(0, LID_H / 2 - WELL_DEPTH * 0.45, 0);
 lid.add(topWell);
@@ -447,7 +455,7 @@ base.add(cradlesRoot);
 parts.cradles = cradlesRoot;
 
 const fanPivot = new THREE.Group();
-fanPivot.position.set(FAN_X, BASE_H - 0.85, FAN_Z);
+fanPivot.position.set(FAN_X, 0.55, FAN_Z);
 cradlesRoot.add(fanPivot);
 
 const pivotPin = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 3.6, 20), matGold);
@@ -481,10 +489,6 @@ for (let i = 0; i < N; i++) {
   fanPivot.add(g);
   cradles.push({ group: g, baseY: i * 0.62, index: i });
 }
-
-const stopWall = box(1.2, 2.8, 8, matClipEdge);
-stopWall.position.set(FAN_X - 2, BASE_H + 0.5, FAN_Z + 10.5);
-cradlesRoot.add(stopWall);
 
 // ── DIMENSION OVERLAYS (outer envelope) ────────────────────
 function makeDimLabel(text) {
