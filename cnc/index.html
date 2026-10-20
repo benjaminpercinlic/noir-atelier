@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell only. Black anodized interior. Lift-off barrel with longer milled pin. Each plate has a nest milled for the other half’s barrel so it closes flush. ~95°.</p>
+    <p>Shell only. Black anodized interior. Lift-off barrel + longer pin. Nest half of each plate is cut out so the other barrel seats flush. ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -334,27 +334,44 @@ const base = new THREE.Group();
 root.add(base);
 parts.base = base;
 
-const baseShell = rbox(W, BASE_H, D, 1.8, matSteel);
-baseShell.position.y = BASE_H / 2;
-base.add(baseShell);
-
-// Flat black anodized deck — no raised lip
-const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
-cavity.position.y = 0.28;
-base.add(cavity);
-
-// ── FULL-LENGTH LIFT-OFF (pocket + sleeve + plate nests) ───
-// Pin/sleeve join in the middle. Barrel half-protrudes → each
-// opposite plate gets a milled nest so the case closes flush.
+// ── FULL-LENGTH LIFT-OFF (pocket + sleeve + plate cutouts) ─
 const KNUCKLE_R = 1.2;
 const PIN_R = 0.55;
 const POCKET_R = 0.95;
-const STEP = 5.8;               // deeper sleeve engagement
+const STEP = 5.8;
 const BARREL = W - 6;
 const MALE_LEN = BARREL / 2;
 const FEMALE_LEN = BARREL / 2;
+const NEST_CUT = KNUCKLE_R * 2.15; // real material removed from nest half
 const hingeZ = -D / 2 + KNUCKLE_R;
 const hingeY = BASE_H;
+const halfW = W / 2 - 0.2;
+
+const nestMat = new THREE.MeshPhysicalMaterial({
+  color: 0x08080a, metalness: 0.3, roughness: 0.75, envMapIntensity: 0.1,
+  side: THREE.DoubleSide,
+});
+
+// BASE split: male half full depth · female half rear CUT OUT for lid barrel
+const baseL = rbox(halfW, BASE_H, D, 1.2, matSteel);
+baseL.position.set(-halfW / 2 - 0.1, BASE_H / 2, 0);
+base.add(baseL);
+const baseR = rbox(halfW, BASE_H, D - NEST_CUT, 1.2, matSteel);
+baseR.position.set(halfW / 2 + 0.1, BASE_H / 2, NEST_CUT / 2);
+base.add(baseR);
+// Open nest liner (empty tube) — shows milled cylindrical clearance
+const baseNestLiner = new THREE.Mesh(
+  new THREE.CylinderGeometry(KNUCKLE_R + 0.06, KNUCKLE_R + 0.06, FEMALE_LEN - 0.4, 28, 1, true),
+  nestMat
+);
+baseNestLiner.rotation.z = Math.PI / 2;
+baseNestLiner.position.set(FEMALE_LEN / 2, hingeY, hingeZ);
+base.add(baseNestLiner);
+
+// Flat black anodized deck — no raised lip
+const cavity = rbox(W - 3.4, 0.32, D - 3.4 - NEST_CUT * 0.35, 1.0, matAnodized);
+cavity.position.set(0, 0.28, NEST_CUT * 0.15);
+base.add(cavity);
 
 const hinge = new THREE.Group();
 base.add(hinge);
@@ -386,29 +403,6 @@ const pinLen = STEP + 2.8;
 const axisPin = cylX(PIN_R, pinLen, matSteel);
 axisPin.position.set(-STEP + pinLen / 2, hingeY, hingeZ);
 hinge.add(axisPin);
-
-// Plate nests = half-pipes milled INTO the flat shells (not extra tubes).
-// Base nest receives lid female barrel; lid nest receives base male barrel.
-const nestMat = new THREE.MeshPhysicalMaterial({
-  color: 0x08080a, metalness: 0.3, roughness: 0.75, envMapIntensity: 0.1,
-  side: THREE.DoubleSide,
-  polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
-});
-function plateNest(len) {
-  // Half-cylinder trough carved into the plate edge
-  const geo = new THREE.CylinderGeometry(
-    KNUCKLE_R + 0.1, KNUCKLE_R + 0.1, len, 28, 1, false, 0, Math.PI
-  );
-  const m = new THREE.Mesh(geo, nestMat);
-  m.rotation.z = Math.PI / 2; // axis along X
-  return m;
-}
-
-// BASE plate: nest on the female side (right) — lid barrel seats here when closed
-const baseNest = plateNest(FEMALE_LEN - 0.5);
-baseNest.rotation.x = Math.PI; // open upward into / from top face
-baseNest.position.set(FEMALE_LEN / 2, hingeY, hingeZ);
-base.add(baseNest);
 
 // Kein Latch / Verschluss-Kläppchen
 
@@ -484,22 +478,27 @@ lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
 lidPivot.add(lid);
 parts.lid = lid;
 
-const lidShell = rbox(W, LID_H, D, 1.8, matSteel);
-lid.add(lidShell);
-
-// LID plate: nest on the male side (left) — milled into the shell underside
-// so the base male barrel seats flush when closed
-const lidNest = plateNest(MALE_LEN - 0.5);
-// hinge axis in lid-local coords
-lidNest.position.set(
+// LID split: female half full · male half rear CUT OUT for base barrel
+const lidR = rbox(halfW, LID_H, D, 1.2, matSteel);
+lidR.position.set(halfW / 2 + 0.1, 0, 0);
+lid.add(lidR);
+const lidL = rbox(halfW, LID_H, D - NEST_CUT, 1.2, matSteel);
+lidL.position.set(-halfW / 2 - 0.1, 0, NEST_CUT / 2);
+lid.add(lidL);
+const lidNestLiner = new THREE.Mesh(
+  new THREE.CylinderGeometry(KNUCKLE_R + 0.06, KNUCKLE_R + 0.06, MALE_LEN - 0.4, 28, 1, true),
+  nestMat
+);
+lidNestLiner.rotation.z = Math.PI / 2;
+lidNestLiner.position.set(
   -MALE_LEN / 2,
   -(LID_H / 2 + GAP),
   -(D / 2 - 1.4)
 );
-lid.add(lidNest);
+lid.add(lidNestLiner);
 
-const lidInner = rbox(W - 3.4, 0.28, D - 3.4, 1.0, matAnodized);
-lidInner.position.set(0, -LID_H / 2 + 0.22, 0);
+const lidInner = rbox(W - 3.4, 0.28, D - 3.4 - NEST_CUT * 0.35, 1.0, matAnodized);
+lidInner.position.set(0, -LID_H / 2 + 0.22, NEST_CUT * 0.15);
 lid.add(lidInner);
 
 const topWell = rbox(wellW, WELL_DEPTH, wellD, 0.9, matWell);
