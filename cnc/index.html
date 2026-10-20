@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell only. Black anodized interior. Lift-off barrel + longer pin. Local nest slot cut into each plate’s rear edge for the other barrel. ~95°.</p>
+    <p>Shell only. Black anodized interior. Lift-off barrel with longer milled pin. Each plate has a nest milled for the other half’s barrel so it closes flush. ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -334,73 +334,27 @@ const base = new THREE.Group();
 root.add(base);
 parts.base = base;
 
-// ── FULL-LENGTH LIFT-OFF + local nest cutouts ──────────────
-const KNUCKLE_R = 1.2;
-const PIN_R = 0.55;
-const POCKET_R = 0.95;
-const STEP = 5.8;
-const BARREL = W - 6;
-const MALE_LEN = BARREL / 2;
-const FEMALE_LEN = BARREL / 2;
-const NEST_DEPTH = KNUCKLE_R * 2.05; // real cut into rear edge
-const hingeZ = -D / 2 + KNUCKLE_R;
-const hingeY = BASE_H;
-
-const nestMat = new THREE.MeshPhysicalMaterial({
-  color: 0x08080a, metalness: 0.3, roughness: 0.75, envMapIntensity: 0.1,
-  side: THREE.DoubleSide,
-});
-
-// Plate with a LOCAL slot cut from the rear edge (not half the plate gone)
-function shellWithNestCut(w, h, d, nestSide, nestLen, mat) {
-  const hw = w / 2;
-  const hd = d / 2;
-  const x0 = nestSide === 'right' ? 0.1 : -nestLen;
-  const x1 = nestSide === 'right' ? nestLen : -0.1;
-  const s = new THREE.Shape();
-  // Outline CW: front → right → rear (with nest bite) → left
-  s.moveTo(-hw, hd);
-  s.lineTo(hw, hd);
-  s.lineTo(hw, -hd);
-  if (nestSide === 'right') {
-    s.lineTo(x1, -hd);
-    s.lineTo(x1, -hd + NEST_DEPTH);
-    s.lineTo(x0, -hd + NEST_DEPTH);
-    s.lineTo(x0, -hd);
-    s.lineTo(-hw, -hd);
-  } else {
-    s.lineTo(x1, -hd);
-    s.lineTo(x1, -hd + NEST_DEPTH);
-    s.lineTo(x0, -hd + NEST_DEPTH);
-    s.lineTo(x0, -hd);
-    s.lineTo(-hw, -hd);
-  }
-  s.lineTo(-hw, hd);
-  const geo = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: false, curveSegments: 8 });
-  geo.rotateX(-Math.PI / 2); // thickness → Y
-  geo.translate(0, h / 2, 0);
-  const m = new THREE.Mesh(geo, mat);
-  m.castShadow = true;
-  m.receiveShadow = true;
-  return m;
-}
-
-// BASE: full plate, nest slot on female (right) side for lid barrel
-const baseShell = shellWithNestCut(W, BASE_H, D, 'right', FEMALE_LEN - 0.2, matSteel);
+const baseShell = rbox(W, BASE_H, D, 1.8, matSteel);
+baseShell.position.y = BASE_H / 2;
 base.add(baseShell);
-// Round milled face inside the cut
-const baseNestFace = new THREE.Mesh(
-  new THREE.CylinderGeometry(KNUCKLE_R + 0.05, KNUCKLE_R + 0.05, FEMALE_LEN - 0.35, 28, 1, true),
-  nestMat
-);
-baseNestFace.rotation.z = Math.PI / 2;
-baseNestFace.position.set(FEMALE_LEN / 2, hingeY, hingeZ);
-base.add(baseNestFace);
 
 // Flat black anodized deck — no raised lip
 const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
 cavity.position.y = 0.28;
 base.add(cavity);
+
+// ── FULL-LENGTH LIFT-OFF (pocket + sleeve + plate nests) ───
+// Pin/sleeve join in the middle. Barrel half-protrudes → each
+// opposite plate gets a milled nest so the case closes flush.
+const KNUCKLE_R = 1.2;
+const PIN_R = 0.55;
+const POCKET_R = 0.95;
+const STEP = 5.8;               // deeper sleeve engagement
+const BARREL = W - 6;
+const MALE_LEN = BARREL / 2;
+const FEMALE_LEN = BARREL / 2;
+const hingeZ = -D / 2 + KNUCKLE_R;
+const hingeY = BASE_H;
 
 const hinge = new THREE.Group();
 base.add(hinge);
@@ -422,14 +376,39 @@ maleCap.rotation.y = Math.PI / 2;
 maleCap.position.set(-BARREL / 2, hingeY, hingeZ);
 hinge.add(maleCap);
 
+// Freigefräste Tasche in der Stoßfläche — Hülse füllt sie exakt
 const pocketVoid = cylX(POCKET_R, STEP, matAnodized);
 pocketVoid.position.set(-STEP / 2, hingeY, hingeZ);
 hinge.add(pocketVoid);
 
+// Längerer eingefräster Stift für besseren Halt
 const pinLen = STEP + 2.8;
 const axisPin = cylX(PIN_R, pinLen, matSteel);
 axisPin.position.set(-STEP + pinLen / 2, hingeY, hingeZ);
 hinge.add(axisPin);
+
+// Plate nests = half-pipes milled INTO the flat shells (not extra tubes).
+// Base nest receives lid female barrel; lid nest receives base male barrel.
+const nestMat = new THREE.MeshPhysicalMaterial({
+  color: 0x08080a, metalness: 0.3, roughness: 0.75, envMapIntensity: 0.1,
+  side: THREE.DoubleSide,
+  polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+});
+function plateNest(len) {
+  // Half-cylinder trough carved into the plate edge
+  const geo = new THREE.CylinderGeometry(
+    KNUCKLE_R + 0.1, KNUCKLE_R + 0.1, len, 28, 1, false, 0, Math.PI
+  );
+  const m = new THREE.Mesh(geo, nestMat);
+  m.rotation.z = Math.PI / 2; // axis along X
+  return m;
+}
+
+// BASE plate: nest on the female side (right) — lid barrel seats here when closed
+const baseNest = plateNest(FEMALE_LEN - 0.5);
+baseNest.rotation.x = Math.PI; // open upward into / from top face
+baseNest.position.set(FEMALE_LEN / 2, hingeY, hingeZ);
+base.add(baseNest);
 
 // Kein Latch / Verschluss-Kläppchen
 
@@ -505,21 +484,19 @@ lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
 lidPivot.add(lid);
 parts.lid = lid;
 
-// LID: full plate, nest slot on male (left) side for base barrel
-const lidShell = shellWithNestCut(W, LID_H, D, 'left', MALE_LEN - 0.2, matSteel);
-lidShell.position.y = -LID_H / 2; // shellWithNestCut centers at y=h/2 from 0
+const lidShell = rbox(W, LID_H, D, 1.8, matSteel);
 lid.add(lidShell);
-const lidNestFace = new THREE.Mesh(
-  new THREE.CylinderGeometry(KNUCKLE_R + 0.05, KNUCKLE_R + 0.05, MALE_LEN - 0.35, 28, 1, true),
-  nestMat
-);
-lidNestFace.rotation.z = Math.PI / 2;
-lidNestFace.position.set(
+
+// LID plate: nest on the male side (left) — milled into the shell underside
+// so the base male barrel seats flush when closed
+const lidNest = plateNest(MALE_LEN - 0.5);
+// hinge axis in lid-local coords
+lidNest.position.set(
   -MALE_LEN / 2,
   -(LID_H / 2 + GAP),
   -(D / 2 - 1.4)
 );
-lid.add(lidNestFace);
+lid.add(lidNest);
 
 const lidInner = rbox(W - 3.4, 0.28, D - 3.4, 1.0, matAnodized);
 lidInner.position.set(0, -LID_H / 2 + 0.22, 0);
