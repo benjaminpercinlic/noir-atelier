@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell + 3 cradles. Black anodized interior. Barrel hinge works with hairline knuckle gaps + one flush pin (no welds). Opens to ~95°.</p>
+    <p>Shell + 3 cradles. Black anodized interior. Side pivots: pin on base, socket on lid — snap-fit. Only a tiny edge gap. Opens to ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnFan">Fan</button>
@@ -108,7 +108,7 @@
     <label><input type="checkbox" data-part="lid" checked /> Lid shell</label>
     <label><input type="checkbox" data-part="wells" checked /> Recesses</label>
     <label><input type="checkbox" data-part="cradles" checked /> Card cradles ×3</label>
-    <label><input type="checkbox" data-part="hinge" checked /> Hinge pin</label>
+    <label><input type="checkbox" data-part="hinge" checked /> Pivot pins ×2</label>
     <label><input type="checkbox" data-part="lip" checked /> Step lip</label>
   </aside>
 
@@ -116,7 +116,7 @@
     <h2>Specs (mm)</h2>
     <ul>
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
-      <li><em>Hinge</em> 3-knuckle · hairline · Ø1.1</li>
+      <li><em>Hinge</em> pin + socket · snap ×2</li>
       <li><em>Stop</em> ~95°</li>
       <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
@@ -166,8 +166,8 @@ const EXPLODE = {
   baseZ: 20,
   cradlesZ: 6,
   cradleStep: 5,
-  pinZ: -8,
   lidZ: -26,
+  pinOut: 5, // pull pins out of sockets to show snap fit
 };
 
 const canvas = document.getElementById('c');
@@ -359,59 +359,67 @@ const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
 cavity.position.y = 0.28;
 base.add(cavity);
 
-// ── CLEAN BARREL HINGE ─────────────────────────────────────
-// Looks like one continuous tube; hairline splits only.
-// Base outer knuckles + lid center · pin fully flush (end caps)
-const PIN_R = 0.48;
-const KNUCKLE_R = 1.05;
-const hingeZ = -D / 2 + KNUCKLE_R * 0.85;
+// ── SIDE PIVOT HINGE (pin + socket snap) ───────────────────
+// Base: integral pins L/R · Lid: sockets that snap on
+// Rear edge stays clean — only a tiny gap at each side
+const PIVOT_R = 0.7;
+const SOCKET_R = 1.2;
+const PIVOT_LEN = 3.2;
+const hingeZ = -D / 2 + 1.25;
 const hingeY = BASE_H;
+const pivotX = W / 2 - 2.4;
 
-function makeKnuckle(len, mat) {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(KNUCKLE_R, KNUCKLE_R, len, 32), mat);
-  m.rotation.z = Math.PI / 2;
-  m.castShadow = true;
-  m.receiveShadow = true;
-  return m;
+function makePivotPin() {
+  const g = new THREE.Group();
+  const shaft = new THREE.Mesh(
+    new THREE.CylinderGeometry(PIVOT_R, PIVOT_R, PIVOT_LEN, 20),
+    matSteel
+  );
+  shaft.rotation.z = Math.PI / 2;
+  shaft.castShadow = true;
+  // Snap undercut tip — holds socket without extra parts
+  const tip = new THREE.Mesh(
+    new THREE.SphereGeometry(PIVOT_R * 1.18, 14, 12),
+    matSteel
+  );
+  tip.position.x = PIVOT_LEN / 2 - 0.15;
+  tip.scale.set(0.5, 1, 1);
+  tip.castShadow = true;
+  g.add(shaft, tip);
+  return g;
 }
 
-const knSpan = W - 16;
-const knLens = [knSpan * 0.3, knSpan * 0.4, knSpan * 0.3];
-const knGap = 0.06; // hairline — reads as one barrel
-let knX = -knSpan / 2;
+function makeSocket() {
+  const g = new THREE.Group();
+  const outer = new THREE.Mesh(
+    new THREE.CylinderGeometry(SOCKET_R, SOCKET_R, 2.4, 24),
+    matSteel
+  );
+  outer.rotation.z = Math.PI / 2;
+  outer.castShadow = true;
+  const bore = new THREE.Mesh(
+    new THREE.CylinderGeometry(PIVOT_R * 1.1, PIVOT_R * 1.1, 2.6, 16),
+    matAnodized
+  );
+  bore.rotation.z = Math.PI / 2;
+  g.add(outer, bore);
+  return g;
+}
 
-const baseKnL = makeKnuckle(knLens[0] - knGap, matSteel);
-baseKnL.position.set(knX + knLens[0] / 2, hingeY, hingeZ);
-base.add(baseKnL);
-knX += knLens[0];
+const hinge = new THREE.Group();
+base.add(hinge);
+parts.hinge = hinge;
 
-const lidKnCenterX = knX + knLens[1] / 2;
-const lidKnLen = knLens[1] - knGap;
-knX += knLens[1];
+const pinL = makePivotPin();
+pinL.position.set(-pivotX + PIVOT_LEN / 2, hingeY, hingeZ);
+hinge.add(pinL);
+const pinLHomeX = pinL.position.x;
 
-const baseKnR = makeKnuckle(knLens[2] - knGap, matSteel);
-baseKnR.position.set(knX + knLens[2] / 2, hingeY, hingeZ);
-base.add(baseKnR);
-
-// Pin shorter than outer knuckles · flush steel caps hide ends
-const pinLen = knSpan - 1.2;
-const pin = new THREE.Group();
-const pinShaft = new THREE.Mesh(
-  new THREE.CylinderGeometry(PIN_R, PIN_R, pinLen, 16),
-  matSteel
-);
-pinShaft.rotation.z = Math.PI / 2;
-pin.add(pinShaft);
-const capL = new THREE.Mesh(new THREE.CylinderGeometry(KNUCKLE_R * 0.92, KNUCKLE_R * 0.92, 0.45, 24), matSteel);
-capL.rotation.z = Math.PI / 2;
-capL.position.x = -knSpan / 2 + 0.2;
-pin.add(capL);
-const capR = capL.clone();
-capR.position.x = knSpan / 2 - 0.2;
-pin.add(capR);
-pin.position.set(0, hingeY, hingeZ);
-root.add(pin);
-parts.hinge = pin;
+const pinR = makePivotPin();
+pinR.rotation.y = Math.PI; // tip points inward
+pinR.position.set(pivotX - PIVOT_LEN / 2, hingeY, hingeZ);
+hinge.add(pinR);
+const pinRHomeX = pinR.position.x;
 
 // Kein Latch / Verschluss-Kläppchen
 
@@ -464,10 +472,13 @@ const lidPivot = new THREE.Group();
 lidPivot.position.set(0, hingeY, hingeZ);
 root.add(lidPivot);
 
-// Lid knuckle sits on pivot axis (rotates with lid)
-const lidKn = makeKnuckle(knLens[1] - knGap, matSteel);
-lidKn.position.set(lidKnCenterX, 0, 0);
-lidPivot.add(lidKn);
+// Lid sockets on pivot axis — snap onto base pins
+const sockL = makeSocket();
+sockL.position.set(-pivotX + PIVOT_LEN * 0.55, 0, 0);
+lidPivot.add(sockL);
+const sockR = makeSocket();
+sockR.position.set(pivotX - PIVOT_LEN * 0.55, 0, 0);
+lidPivot.add(sockR);
 
 const lid = new THREE.Group();
 lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
@@ -613,7 +624,7 @@ function makePartTag(text) {
 }
 const tagBase = makePartTag('Base  92 × 60.4 × 4.4');
 const tagCradles = makePartTag('Cradles ×3');
-const tagPin = makePartTag('Pin  Ø1.1 × 76');
+const tagPin = makePartTag('Pivot  Ø1.4 snap ×2');
 const tagLid = makePartTag('Lid  92 × 60.4 × 4.0');
 
 // ── UI ─────────────────────────────────────────────────────
@@ -651,14 +662,11 @@ function pose() {
 
   cradlesRoot.position.set(0, 0, EXPLODE.cradlesZ * e);
 
-  // Pin on the floor line, just in front of the standing lid
-  pin.position.set(
-    0,
-    THREE.MathUtils.lerp(hingeY, 1.1, e),
-    THREE.MathUtils.lerp(hingeZ, EXPLODE.pinZ, e)
-  );
+  // Pull pins out of sockets so the snap-fit reads in explode
+  pinL.position.x = pinLHomeX - EXPLODE.pinOut * e;
+  pinR.position.x = pinRHomeX + EXPLODE.pinOut * e;
 
-  // Lid pivot stays at hinge height so the plate stands upright at the back
+  // Lid stands upright at the back
   lidPivot.position.set(
     0,
     hingeY,
@@ -674,7 +682,7 @@ function pose() {
     const ez = e * EXPLODE.cradleStep * (k + 1);
     c.group.rotation.y = -spread;
     c.group.position.set(
-      Math.sin(spread) * 1.2 + e * (k - 1) * 14, // slight side spread so ×3 reads
+      Math.sin(spread) * 1.2 + e * (k - 1) * 14,
       THREE.MathUtils.lerp(c.baseY + follow * FAN_LIFT * (0.2 + k * 0.18), 0.2, e),
       (1 - Math.cos(spread)) * 2.4 - ez
     );
@@ -684,8 +692,7 @@ function pose() {
   partDims.visible = e > 0.4;
   tagBase.position.set(0, 7, EXPLODE.baseZ * e + 2);
   tagCradles.position.set(0, 7, EXPLODE.cradlesZ * e - 4);
-  tagPin.position.set(0, 7, EXPLODE.pinZ * e);
-  // Tag on the standing lid face
+  tagPin.position.set(0, 8, EXPLODE.baseZ * e * 0.35 + EXPLODE.lidZ * e * 0.15);
   tagLid.position.set(0, 32, EXPLODE.lidZ * e + 8);
 
   openEl.value = String(Math.round(openT * 100));
