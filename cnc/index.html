@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell only. All silver CNC finish. Lid has a milled clip pocket so the bill clip sits flush and the shell still closes. Lift-off hinge. ~95°.</p>
+    <p>Shell only. Silver CNC rim. Lid interior fully milled to the rim (black-ano plate zone) — no clip. Lift-off hinge. ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -100,8 +100,8 @@
     <h2>Parts</h2>
     <label><input type="checkbox" data-part="base" checked /> Base shell</label>
     <label><input type="checkbox" data-part="lid" checked /> Lid shell</label>
-    <label><input type="checkbox" data-part="wells" checked /> Recesses</label>
-    <label><input type="checkbox" data-part="clip" checked /> Bill clip pocket</label>
+    <label><input type="checkbox" data-part="wells" checked /> Outer recesses</label>
+    <label><input type="checkbox" data-part="lidInner" checked /> Lid inner mill</label>
     <label><input type="checkbox" data-part="hinge" checked /> Lift-off hinge</label>
     <label><input type="checkbox" data-part="lip" checked /> Step lip</label>
   </aside>
@@ -112,12 +112,13 @@
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
       <li><em>Hinge</em> pocket + sleeve · plate nests</li>
       <li><em>Stop</em> ~95°</li>
-      <li><em>Clip pocket</em> lid only · flush close</li>
+      <li><em>Lid inner</em> full mill to rim · black ano</li>
       <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
       <li><em>Side margin</em> 3.2 L = R</li>
       <li><em>Base H</em> 4.4 · <em>Lid H</em> 4.0</li>
-      <li><em>Recess</em> 86.0 × 54.4 × 0.35</li>
+      <li><em>Outer recess</em> 86.0 × 54.4 × 0.35</li>
+      <li><em>Lid pocket</em> ~88.6 × 57.0 × 1.45</li>
       <li><em>Corner R</em> ~1.8</li>
       <li><em>Units</em> mm</li>
     </ul>
@@ -316,6 +317,12 @@ const matAnodized = new THREE.MeshPhysicalMaterial({
   color: 0xb8bcc6, metalness: 1, roughness: 0.4,
   clearcoat: 0.12, clearcoatRoughness: 0.5, envMapIntensity: 0.4,
 });
+// Lid inner mill — black-anodized plate zone (full pocket to rim)
+const matBlackAno = new THREE.MeshPhysicalMaterial({
+  color: 0x0c0c0e, metalness: 0.62, roughness: 0.42,
+  clearcoat: 0.1, clearcoatRoughness: 0.55, envMapIntensity: 0.28,
+  polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+});
 
 function rbox(w, h, d, r, mat) {
   const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 6, r), mat);
@@ -499,43 +506,20 @@ parts.lid = lid;
 let lidShell = rbox(W, LID_H, D, 1.8, matSteel);
 lid.add(lidShell);
 
-const lidInner = rbox(W - 3.4, 0.28, D - 3.4, 1.0, matAnodized);
-lidInner.position.set(0, -LID_H / 2 + 0.22, 0);
+// Full lid inner mill to the silver rim — black-ano zone, no clip
+const LID_RIM = 1.7;
+const LID_INNER_W = W - LID_RIM * 2;
+const LID_INNER_D = D - LID_RIM * 2;
+const LID_INNER_DEPTH = 1.45;
+const lidInner = rbox(LID_INNER_W, LID_INNER_DEPTH, LID_INNER_D, 1.0, matBlackAno);
+lidInner.position.set(0, -LID_H / 2 + LID_INNER_DEPTH / 2 + 0.04, 0);
 lid.add(lidInner);
+parts.lidInner = lidInner;
 
 const topWell = rbox(wellW, WELL_DEPTH, wellD, 0.9, matWell);
 topWell.position.set(0, LID_H / 2 - WELL_DEPTH * 0.45, 0);
 lid.add(topWell);
 wellMeshes.push(topWell);
-
-// Lid-only bill-clip pocket — milled so clip sits flush; shell still closes
-const CLIP_X = -(W - 4) * 0.36;
-const CLIP_Z = -9.5;
-const CLIP_POCKET_H = 0.95;
-const clipGroup = new THREE.Group();
-lid.add(clipGroup);
-parts.clip = clipGroup;
-
-const clipPocket = rbox(2.4, CLIP_POCKET_H, 12.5, 0.35, matWell);
-clipPocket.position.set(CLIP_X, -LID_H / 2 + CLIP_POCKET_H / 2 + 0.02, CLIP_Z);
-clipGroup.add(clipPocket);
-
-// Wider shallow cash clearance under the bar (bills tuck under clip)
-const cashClear = rbox(18, 0.55, 28, 0.6, matWell);
-cashClear.position.set(CLIP_X + 6, -LID_H / 2 + 0.55 / 2 + 0.02, CLIP_Z + 2);
-clipGroup.add(cashClear);
-
-const billClip = new THREE.Group();
-const clipBar = rbox(0.65, 0.26, 10, 0.1, matSteel);
-const clipTip = rbox(0.65, 0.2, 1.2, 0.08, matSteel);
-clipTip.position.set(0, -0.04, 5.1);
-clipTip.rotation.x = 0.35;
-const clipRivet = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.28, 12), matSteel);
-clipRivet.position.set(0, 0.02, -4.7);
-billClip.add(clipBar, clipTip, clipRivet);
-// Flush with lid inner plane — no stand-off that would block closing
-billClip.position.set(CLIP_X, -LID_H / 2 + 0.22, CLIP_Z);
-clipGroup.add(billClip);
 
 const stepLip = box(W - 10, 1.2, 3.0, matSteel);
 stepLip.position.set(0, -LID_H / 2 + 0.3, D / 2 - 2.2);
