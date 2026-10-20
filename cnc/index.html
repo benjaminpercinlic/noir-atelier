@@ -608,8 +608,8 @@ function pose() {
   const lidE = easeInOut(openT);
   const e = easeInOut(explodeT);
 
-  const openEff = THREE.MathUtils.lerp(lidE, 1, e);
-  lidPivot.rotation.x = -openEff * LID_MAX;
+  // Lid angle = slider only. Exploded always separates, open or closed.
+  lidPivot.rotation.x = -lidE * LID_MAX;
 
   base.position.set(0, 0, EXPLODE.baseZ * e);
   lidPivot.position.set(
@@ -630,7 +630,7 @@ function pose() {
   btnOpen.textContent = openT > 0.5 ? 'Close' : 'Open';
   btnOpen.classList.toggle('on', openT > 0.12);
   btnExplode.classList.toggle('on', explode || e > 0.12);
-  btnExplode.textContent = 'Exploded';
+  btnExplode.textContent = explode || e > 0.5 ? 'Collapse' : 'Exploded';
 }
 
 function goOpen(v) { targetOpen = THREE.MathUtils.clamp(v, 0, 1); animOpen = true; }
@@ -646,12 +646,8 @@ btnExplode.addEventListener('click', (ev) => {
   ev.preventDefault();
   explode = !explode;
   btnExplode.classList.toggle('on', explode);
-  if (explode) {
-    goOpen(1);
-    setView('explode');
-  } else {
-    setView('hero');
-  }
+  // Never depend on open/closed — always just separate / collapse
+  setView(explode ? 'explode' : 'hero');
   pose();
 });
 btnView.addEventListener('click', () => {
