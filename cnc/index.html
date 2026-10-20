@@ -82,10 +82,9 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell + 3 cradles. Black anodized interior. Side pivots: pin on base, socket on lid — snap-fit. Only a tiny edge gap. Opens to ~95°.</p>
+    <p>Shell only. Black anodized interior. Lift-off hinge in the center: fixed pin on base, sleeve on lid. One seam. Opens to ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
-      <button id="btnFan">Fan</button>
       <button id="btnExplode">Exploded</button>
       <button id="btnView">View</button>
     </div>
@@ -94,12 +93,7 @@
       <input id="open" type="range" min="0" max="100" value="0" />
       <span id="openLbl">0%</span>
     </div>
-    <div class="row">
-      <span>Fan</span>
-      <input id="fan" type="range" min="0" max="100" value="0" />
-      <span id="fanLbl">0%</span>
-    </div>
-    <div class="hint">Drag · Scroll · Space · F = fan</div>
+    <div class="hint">Drag · Scroll · Space = open</div>
   </aside>
 
   <aside class="parts">
@@ -107,8 +101,7 @@
     <label><input type="checkbox" data-part="base" checked /> Base shell</label>
     <label><input type="checkbox" data-part="lid" checked /> Lid shell</label>
     <label><input type="checkbox" data-part="wells" checked /> Recesses</label>
-    <label><input type="checkbox" data-part="cradles" checked /> Card cradles ×3</label>
-    <label><input type="checkbox" data-part="hinge" checked /> Pivot pins ×2</label>
+    <label><input type="checkbox" data-part="hinge" checked /> Lift-off hinge</label>
     <label><input type="checkbox" data-part="lip" checked /> Step lip</label>
   </aside>
 
@@ -116,14 +109,13 @@
     <h2>Specs (mm)</h2>
     <ul>
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
-      <li><em>Hinge</em> pin + socket · snap ×2</li>
+      <li><em>Hinge</em> lift-off · center · Ø1.2</li>
       <li><em>Stop</em> ~95°</li>
       <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
       <li><em>Side margin</em> 3.2 L = R</li>
       <li><em>Base H</em> 4.4 · <em>Lid H</em> 4.0</li>
       <li><em>Recess</em> 86.0 × 54.4 × 0.35</li>
-      <li><em>Cradles</em> 3× on pivot</li>
       <li><em>Corner R</em> ~1.8</li>
       <li><em>Units</em> mm</li>
     </ul>
@@ -153,21 +145,14 @@ const D = CD + SIDE * 2; // 60.38
 const BASE_H = 4.4;
 const LID_H = 4.0;
 const GAP = 0.12;
-const N = 3;
-const FAN_X = 0.5 - CW / 2;
-const FAN_Z = 2.5 - CD / 2;
 const WELL_INSET = 3.0;
 const WELL_DEPTH = 0.35;
 const LID_MAX = THREE.MathUtils.degToRad(98);
-const FAN_STEP = THREE.MathUtils.degToRad(8.2);
-const FAN_LIFT = 0.55;
-// Exploded: floor parts same height → back; lid stands as rear wall
+// Exploded: base forward · lid stands back · sleeve lifts off pin
 const EXPLODE = {
-  baseZ: 20,
-  cradlesZ: 6,
-  cradleStep: 5,
-  lidZ: -26,
-  pinOut: 5, // pull pins out of sockets to show snap fit
+  baseZ: 18,
+  lidZ: -24,
+  liftX: 14, // slide lid sleeve off the fixed pin
 };
 
 const canvas = document.getElementById('c');
@@ -234,13 +219,12 @@ const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.5, 60
 const views = {
   hero: { pos: [68, 58, 92], target: [0, 7, 2] },
   open: { pos: [55, 72, 85], target: [0, 12, 0] },
-  fan:  { pos: [30, 80, 70], target: [-8, 10, 4] },
   top:  { pos: [0, 120, 8], target: [0, 6, 0] },
   bottom: { pos: [15, -70, 50], target: [0, 4, 0] },
   side: { pos: [130, 28, 0], target: [0, 8, 0] },
   explode: { pos: [95, 55, 70], target: [0, 18, -8] },
 };
-const viewKeys = ['hero', 'open', 'fan', 'top', 'bottom', 'side', 'explode'];
+const viewKeys = ['hero', 'open', 'top', 'bottom', 'side', 'explode'];
 camera.position.fromArray(views.hero.pos);
 
 const controls = new OrbitControls(camera, canvas);
@@ -359,67 +343,40 @@ const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
 cavity.position.y = 0.28;
 base.add(cavity);
 
-// ── SIDE PIVOT HINGE (pin + socket snap) ───────────────────
-// Base: integral pins L/R · Lid: sockets that snap on
-// Rear edge stays clean — only a tiny gap at each side
-const PIVOT_R = 0.7;
-const SOCKET_R = 1.2;
-const PIVOT_LEN = 3.2;
-const hingeZ = -D / 2 + 1.25;
+// ── LIFT-OFF HINGE (center — like flag hinge) ──────────────
+// Base: male knuckle + fixed pin · Lid: female sleeve drops on
+// Assembled = one barrel, one seam in the middle
+const KNUCKLE_R = 1.25;
+const PIN_R = 0.6;
+const MALE_LEN = 9;
+const FEMALE_LEN = 9;
+const PIN_LEN = 14;
+const hingeZ = -D / 2 + KNUCKLE_R;
 const hingeY = BASE_H;
-const pivotX = W / 2 - 2.4;
-
-function makePivotPin() {
-  const g = new THREE.Group();
-  const shaft = new THREE.Mesh(
-    new THREE.CylinderGeometry(PIVOT_R, PIVOT_R, PIVOT_LEN, 20),
-    matSteel
-  );
-  shaft.rotation.z = Math.PI / 2;
-  shaft.castShadow = true;
-  // Snap undercut tip — holds socket without extra parts
-  const tip = new THREE.Mesh(
-    new THREE.SphereGeometry(PIVOT_R * 1.18, 14, 12),
-    matSteel
-  );
-  tip.position.x = PIVOT_LEN / 2 - 0.15;
-  tip.scale.set(0.5, 1, 1);
-  tip.castShadow = true;
-  g.add(shaft, tip);
-  return g;
-}
-
-function makeSocket() {
-  const g = new THREE.Group();
-  const outer = new THREE.Mesh(
-    new THREE.CylinderGeometry(SOCKET_R, SOCKET_R, 2.4, 24),
-    matSteel
-  );
-  outer.rotation.z = Math.PI / 2;
-  outer.castShadow = true;
-  const bore = new THREE.Mesh(
-    new THREE.CylinderGeometry(PIVOT_R * 1.1, PIVOT_R * 1.1, 2.6, 16),
-    matAnodized
-  );
-  bore.rotation.z = Math.PI / 2;
-  g.add(outer, bore);
-  return g;
-}
 
 const hinge = new THREE.Group();
 base.add(hinge);
 parts.hinge = hinge;
 
-const pinL = makePivotPin();
-pinL.position.set(-pivotX + PIVOT_LEN / 2, hingeY, hingeZ);
-hinge.add(pinL);
-const pinLHomeX = pinL.position.x;
+// Male knuckle (base leaf)
+const male = new THREE.Mesh(
+  new THREE.CylinderGeometry(KNUCKLE_R, KNUCKLE_R, MALE_LEN, 28),
+  matSteel
+);
+male.rotation.z = Math.PI / 2;
+male.position.set(-MALE_LEN / 2 - 0.15, hingeY, hingeZ);
+male.castShadow = true;
+hinge.add(male);
 
-const pinR = makePivotPin();
-pinR.rotation.y = Math.PI; // tip points inward
-pinR.position.set(pivotX - PIVOT_LEN / 2, hingeY, hingeZ);
-hinge.add(pinR);
-const pinRHomeX = pinR.position.x;
+// Fixed pin (Achse) — sticks out of male into female
+const axisPin = new THREE.Mesh(
+  new THREE.CylinderGeometry(PIN_R, PIN_R, PIN_LEN, 20),
+  matSteel
+);
+axisPin.rotation.z = Math.PI / 2;
+axisPin.position.set(PIN_LEN / 2 - MALE_LEN / 2 - 0.15, hingeY, hingeZ);
+axisPin.castShadow = true;
+hinge.add(axisPin);
 
 // Kein Latch / Verschluss-Kläppchen
 
@@ -472,13 +429,22 @@ const lidPivot = new THREE.Group();
 lidPivot.position.set(0, hingeY, hingeZ);
 root.add(lidPivot);
 
-// Lid sockets on pivot axis — snap onto base pins
-const sockL = makeSocket();
-sockL.position.set(-pivotX + PIVOT_LEN * 0.55, 0, 0);
-lidPivot.add(sockL);
-const sockR = makeSocket();
-sockR.position.set(pivotX - PIVOT_LEN * 0.55, 0, 0);
-lidPivot.add(sockR);
+// Female sleeve (Türlappen) — slides onto fixed pin
+const female = new THREE.Group();
+const femaleOuter = new THREE.Mesh(
+  new THREE.CylinderGeometry(KNUCKLE_R, KNUCKLE_R, FEMALE_LEN, 28),
+  matSteel
+);
+femaleOuter.rotation.z = Math.PI / 2;
+femaleOuter.castShadow = true;
+const femaleBore = new THREE.Mesh(
+  new THREE.CylinderGeometry(PIN_R * 1.12, PIN_R * 1.12, FEMALE_LEN + 0.4, 16),
+  matAnodized
+);
+femaleBore.rotation.z = Math.PI / 2;
+female.add(femaleOuter, femaleBore);
+female.position.set(FEMALE_LEN / 2 + 0.15, 0, 0);
+lidPivot.add(female);
 
 const lid = new THREE.Group();
 lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
@@ -502,51 +468,6 @@ stepLip.position.set(0, -LID_H / 2 + 0.3, D / 2 - 2.2);
 lid.add(stepLip);
 parts.lip = stepLip;
 parts.wells = { visible: true };
-
-// ── CARD CRADLES (CNC — black holders, top one rough) ──────
-const matClip = new THREE.MeshPhysicalMaterial({
-  color: 0x2a2c32, metalness: 0.9, roughness: 0.4, envMapIntensity: 0.45,
-});
-const matThumb = new THREE.MeshStandardMaterial({ color: 0x1a1c20, roughness: 1, metalness: 0.2 });
-const matGold = new THREE.MeshPhysicalMaterial({
-  color: 0xc4a574, metalness: 1, roughness: 0.42, envMapIntensity: 0.4,
-});
-
-const cradlesRoot = new THREE.Group();
-root.add(cradlesRoot); // own root so explode can pull clear of base
-parts.cradles = cradlesRoot;
-
-const fanPivot = new THREE.Group();
-fanPivot.position.set(FAN_X, 0.55, FAN_Z);
-cradlesRoot.add(fanPivot);
-
-const pivotPin = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 3.6, 20), matGold);
-pivotPin.position.y = 1.5;
-fanPivot.add(pivotPin);
-
-function makeClip(index) {
-  const g = new THREE.Group();
-  const isTop = index === N - 1;
-  const matBody = isTop ? matThumb : matClip;
-  // Slim cradle — no side bar, flat on the deck
-  const back = box(1.0, 1.45, CD * 0.48, matBody);
-  back.position.set(0.15, 0.65, CD * 0.16);
-  const bottom = box(CW * 0.26, 0.28, CD * 0.48, matBody);
-  bottom.position.set(CW * 0.1, 0.1, CD * 0.16);
-  const top = box(CW * 0.1, 0.24, CD * 0.48, matBody);
-  top.position.set(CW * 0.04, 1.2, CD * 0.16);
-  g.add(back, bottom, top);
-  return g;
-}
-
-const cradles = [];
-for (let i = 0; i < N; i++) {
-  const g = new THREE.Group();
-  g.add(makeClip(i));
-  g.position.y = i * 0.62;
-  fanPivot.add(g);
-  cradles.push({ group: g, baseY: i * 0.62, index: i });
-}
 
 // ── DIMENSION OVERLAYS (outer envelope) ────────────────────
 function makeDimLabel(text) {
@@ -623,94 +544,54 @@ function makePartTag(text) {
   return m;
 }
 const tagBase = makePartTag('Base  92 × 60.4 × 4.4');
-const tagCradles = makePartTag('Cradles ×3');
-const tagPin = makePartTag('Pivot  Ø1.4 snap ×2');
+const tagHinge = makePartTag('Hinge  lift-off Ø1.2');
 const tagLid = makePartTag('Lid  92 × 60.4 × 4.0');
 
 // ── UI ─────────────────────────────────────────────────────
 function easeInOut(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
-function smooth01(t) {
-  t = THREE.MathUtils.clamp(t, 0, 1);
-  return t * t * (3 - 2 * t);
-}
 
 let openT = 0, targetOpen = 0, animOpen = false;
-let fanT = 0, targetFan = 0, animFan = false;
 let explode = false, explodeT = 0, viewIdx = 0;
 
 const openEl = document.getElementById('open');
 const openLbl = document.getElementById('openLbl');
-const fanEl = document.getElementById('fan');
-const fanLbl = document.getElementById('fanLbl');
 const btnOpen = document.getElementById('btnOpen');
-const btnFan = document.getElementById('btnFan');
 const btnExplode = document.getElementById('btnExplode');
 const btnView = document.getElementById('btnView');
 
 function pose() {
   const lidE = easeInOut(openT);
-  const fanE = easeInOut(fanT);
   const e = easeInOut(explodeT);
 
-  // Exploded: lid stands as rear wall; other parts flat, same height, toward camera
+  // Exploded: lid stands back + slides off the fixed pin (lift-off)
   const openEff = THREE.MathUtils.lerp(lidE, 1, e);
   lidPivot.rotation.x = -openEff * LID_MAX;
 
   base.position.set(0, 0, EXPLODE.baseZ * e);
 
-  cradlesRoot.position.set(0, 0, EXPLODE.cradlesZ * e);
-
-  // Pull pins out of sockets so the snap-fit reads in explode
-  pinL.position.x = pinLHomeX - EXPLODE.pinOut * e;
-  pinR.position.x = pinRHomeX + EXPLODE.pinOut * e;
-
-  // Lid stands upright at the back
   lidPivot.position.set(
-    0,
+    EXPLODE.liftX * e,
     hingeY,
     THREE.MathUtils.lerp(hingeZ, EXPLODE.lidZ, e)
   );
   lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
 
-  for (const c of cradles) {
-    const k = c.index;
-    const lag = (N - 1 - k) * 0.07;
-    const follow = smooth01(THREE.MathUtils.clamp((fanE - lag) / (1 - lag * 0.5), 0, 1)) * (1 - e);
-    const spread = follow * FAN_STEP * k;
-    const ez = e * EXPLODE.cradleStep * (k + 1);
-    c.group.rotation.y = -spread;
-    c.group.position.set(
-      Math.sin(spread) * 1.2 + e * (k - 1) * 14,
-      THREE.MathUtils.lerp(c.baseY + follow * FAN_LIFT * (0.2 + k * 0.18), 0.2, e),
-      (1 - Math.cos(spread)) * 2.4 - ez
-    );
-  }
-
   dims.visible = e < 0.2;
   partDims.visible = e > 0.4;
   tagBase.position.set(0, 7, EXPLODE.baseZ * e + 2);
-  tagCradles.position.set(0, 7, EXPLODE.cradlesZ * e - 4);
-  tagPin.position.set(0, 8, EXPLODE.baseZ * e * 0.35 + EXPLODE.lidZ * e * 0.15);
-  tagLid.position.set(0, 32, EXPLODE.lidZ * e + 8);
+  tagHinge.position.set(EXPLODE.liftX * e * 0.35, 10, EXPLODE.baseZ * e * 0.2);
+  tagLid.position.set(EXPLODE.liftX * e, 32, EXPLODE.lidZ * e + 8);
 
   openEl.value = String(Math.round(openT * 100));
   openLbl.textContent = `${Math.round(openT * 100)}%`;
-  fanEl.value = String(Math.round(fanT * 100));
-  fanLbl.textContent = `${Math.round(fanT * 100)}%`;
   btnOpen.textContent = openT > 0.5 ? 'Close' : 'Open';
   btnOpen.classList.toggle('on', openT > 0.12);
-  btnFan.classList.toggle('on', fanT > 0.12);
   btnExplode.classList.toggle('on', explode || e > 0.12);
 }
 
 function goOpen(v) { targetOpen = THREE.MathUtils.clamp(v, 0, 1); animOpen = true; }
-function goFan(v) {
-  targetFan = THREE.MathUtils.clamp(v, 0, 1);
-  animFan = true;
-  if (targetFan > 0.05 && openT < 0.55) goOpen(1);
-}
 function setView(name) {
   const v = views[name];
   if (!v) return;
@@ -719,13 +600,11 @@ function setView(name) {
 }
 
 btnOpen.onclick = () => goOpen(targetOpen > 0.5 ? 0 : 1);
-btnFan.onclick = () => goFan(targetFan > 0.5 ? 0 : 1);
 btnExplode.onclick = () => {
   explode = !explode;
   btnExplode.classList.toggle('on', explode);
   if (explode) {
-    goOpen(1); // lid stands as rear wall
-    goFan(0);
+    goOpen(1);
     setView('explode');
   } else {
     setView('hero');
@@ -735,7 +614,6 @@ btnView.onclick = () => {
   viewIdx = (viewIdx + 1) % viewKeys.length;
   setView(viewKeys[viewIdx]);
   if (viewKeys[viewIdx] === 'open') goOpen(1);
-  if (viewKeys[viewIdx] === 'fan') { goOpen(1); goFan(1); }
   if (viewKeys[viewIdx] === 'bottom') goOpen(0);
 };
 
@@ -743,13 +621,6 @@ openEl.oninput = () => {
   animOpen = false;
   openT = +openEl.value / 100;
   targetOpen = openT;
-  pose();
-};
-fanEl.oninput = () => {
-  animFan = false;
-  fanT = +fanEl.value / 100;
-  targetFan = fanT;
-  if (fanT > 0.02 && openT < 0.4) { openT = 0.85; targetOpen = 0.85; }
   pose();
 };
 
@@ -766,7 +637,6 @@ document.querySelectorAll('.parts input').forEach((el) => {
 
 addEventListener('keydown', (e) => {
   if (e.code === 'Space') { e.preventDefault(); goOpen(targetOpen > 0.5 ? 0 : 1); }
-  if (e.code === 'KeyF') { e.preventDefault(); goFan(targetFan > 0.5 ? 0 : 1); }
 });
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
@@ -775,7 +645,6 @@ addEventListener('resize', () => {
 });
 
 pose();
-// Start closed so satin surface + bottom marks read clearly
 setTimeout(() => { setView('hero'); }, 200);
 
 let last = performance.now();
@@ -787,14 +656,8 @@ function frame(now) {
     openT += (targetOpen - openT) * Math.min(1, dt * k);
     if (Math.abs(targetOpen - openT) < 0.0005) { openT = targetOpen; animOpen = false; }
   }
-  if (animFan) {
-    const k = targetFan > fanT ? 5.2 : 4.4;
-    fanT += (targetFan - fanT) * Math.min(1, dt * k);
-    if (Math.abs(targetFan - fanT) < 0.0005) { fanT = targetFan; animFan = false; }
-  }
   explodeT += ((explode ? 1 : 0) - explodeT) * Math.min(1, dt * 4.2);
-  if (animOpen || animFan || Math.abs(explodeT - (explode ? 1 : 0)) > 0.001) pose();
-  else pose();
+  pose();
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
