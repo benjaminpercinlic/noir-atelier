@@ -160,7 +160,14 @@ const WELL_DEPTH = 0.35;
 const LID_MAX = THREE.MathUtils.degToRad(98);
 const FAN_STEP = THREE.MathUtils.degToRad(8.2);
 const FAN_LIFT = 0.55;
-const EXPLODE_Y = 14;
+// Exploded lineup (front → back): base → cradles → hinge → lid
+const EXPLODE = {
+  base:    { x: 0, y: 0,  z:  28 },
+  cradles: { x: 0, y: 4,  z:   6 },
+  cradleZ: 9,
+  hinge:   { x: 0, y: 8,  z: -22 },
+  lid:     { x: 0, y: 12, z: -52 },
+};
 
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({
@@ -230,8 +237,9 @@ const views = {
   top:  { pos: [0, 120, 8], target: [0, 6, 0] },
   bottom: { pos: [15, -70, 50], target: [0, 4, 0] },
   side: { pos: [130, 28, 0], target: [0, 8, 0] },
+  explode: { pos: [95, 55, 70], target: [0, 10, -8] },
 };
-const viewKeys = ['hero', 'open', 'fan', 'top', 'bottom', 'side'];
+const viewKeys = ['hero', 'open', 'fan', 'top', 'bottom', 'side', 'explode'];
 camera.position.fromArray(views.hero.pos);
 
 const controls = new OrbitControls(camera, canvas);
@@ -579,25 +587,52 @@ const btnView = document.getElementById('btnView');
 function pose() {
   const lidE = easeInOut(openT);
   const fanE = easeInOut(fanT);
-  lidPivot.rotation.x = -lidE * LID_MAX;
-
   const e = easeInOut(explodeT);
-  lid.position.y = LID_H / 2 + GAP + e * EXPLODE_Y;
-  hinge.position.y = hingeY + e * (EXPLODE_Y * 0.45);
-  cradlesRoot.position.y = e * (EXPLODE_Y * 0.25);
+
+  // Flatten lid as parts pull apart into a linear stack
+  lidPivot.rotation.x = -lidE * LID_MAX * (1 - e);
+
+  // Front → back: base · cradles · hinge · lid (lid furthest back)
+  base.position.set(
+    EXPLODE.base.x * e,
+    EXPLODE.base.y * e,
+    EXPLODE.base.z * e
+  );
+
+  cradlesRoot.position.set(
+    EXPLODE.cradles.x * e,
+    EXPLODE.cradles.y * e,
+    EXPLODE.cradles.z * e
+  );
+
+  hinge.position.set(
+    EXPLODE.hinge.x * e,
+    hingeY + (EXPLODE.hinge.y - hingeY) * e,
+    hingeZ + (EXPLODE.hinge.z - hingeZ) * e
+  );
+
+  lidPivot.position.set(
+    EXPLODE.lid.x * e,
+    hingeY + (EXPLODE.lid.y - hingeY) * e,
+    hingeZ + (EXPLODE.lid.z - hingeZ) * e
+  );
+  lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
 
   for (const c of cradles) {
     const k = c.index;
     const lag = (N - 1 - k) * 0.07;
-    const follow = smooth01(THREE.MathUtils.clamp((fanE - lag) / (1 - lag * 0.5), 0, 1));
+    const follow = smooth01(THREE.MathUtils.clamp((fanE - lag) / (1 - lag * 0.5), 0, 1)) * (1 - e);
     const spread = follow * FAN_STEP * k;
+    const ez = e * EXPLODE.cradleZ * (k + 1);
     c.group.rotation.y = -spread;
     c.group.position.set(
       Math.sin(spread) * 1.2,
-      c.baseY + follow * FAN_LIFT * (0.2 + k * 0.18),
-      (1 - Math.cos(spread)) * 2.4
+      c.baseY + follow * FAN_LIFT * (0.2 + k * 0.18) + e * k * 1.2,
+      (1 - Math.cos(spread)) * 2.4 - ez
     );
   }
+
+  dims.visible = e < 0.35;
 
   openEl.value = String(Math.round(openT * 100));
   openLbl.textContent = `${Math.round(openT * 100)}%`;
@@ -606,6 +641,7 @@ function pose() {
   btnOpen.textContent = openT > 0.5 ? 'Close' : 'Open';
   btnOpen.classList.toggle('on', openT > 0.12);
   btnFan.classList.toggle('on', fanT > 0.12);
+  btnExplode.classList.toggle('on', explode || e > 0.12);
 }
 
 function goOpen(v) { targetOpen = THREE.MathUtils.clamp(v, 0, 1); animOpen = true; }
@@ -626,7 +662,13 @@ btnFan.onclick = () => goFan(targetFan > 0.5 ? 0 : 1);
 btnExplode.onclick = () => {
   explode = !explode;
   btnExplode.classList.toggle('on', explode);
-  if (explode) goOpen(Math.max(openT, 0.65));
+  if (explode) {
+    goOpen(0);
+    goFan(0);
+    setView('explode');
+  } else {
+    setView('hero');
+  }
 };
 btnView.onclick = () => {
   viewIdx = (viewIdx + 1) % viewKeys.length;
