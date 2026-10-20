@@ -138,8 +138,11 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { Brush, Evaluator, SUBTRACTION } from 'three-bvh-csg';
 
 const errEl = document.getElementById('err');
-addEventListener('error', () => errEl.classList.add('show'));
-addEventListener('unhandledrejection', () => errEl.classList.add('show'));
+addEventListener('error', (ev) => {
+  // Don't blank the whole UI for non-fatal asset/CSG noise
+  if (ev?.filename && String(ev.filename).includes('three-bvh-csg')) return;
+});
+addEventListener('unhandledrejection', () => { /* keep UI usable */ });
 
 const CW = 85.6, CD = 53.98;
 const SIDE = 3.2;
@@ -152,9 +155,9 @@ const WELL_INSET = 3.0;
 const WELL_DEPTH = 0.35;
 const LID_MAX = THREE.MathUtils.degToRad(98);
 const EXPLODE = {
-  baseZ: 18,
-  lidZ: -24,
-  liftX: 18,
+  baseZ: 28,
+  lidZ: -32,
+  liftX: 24,
 };
 
 const canvas = document.getElementById('c');
@@ -351,34 +354,37 @@ const csg = new Evaluator();
 
 /** Subtract a cylinder from a shell mesh — real mill-out for the other barrel */
 function millNestOut(shell, nestX, nestY, nestZ, nestLen) {
-  const solid = new Brush(shell.geometry.clone());
-  solid.position.copy(shell.position);
-  solid.rotation.copy(shell.rotation);
-  solid.scale.copy(shell.scale);
-  solid.updateMatrixWorld(true);
+  try {
+    const solid = new Brush(shell.geometry.clone());
+    solid.position.copy(shell.position);
+    solid.rotation.copy(shell.rotation);
+    solid.scale.copy(shell.scale);
+    solid.updateMatrixWorld(true);
 
-  const cutterGeo = new THREE.CylinderGeometry(KNUCKLE_R + 0.14, KNUCKLE_R + 0.14, nestLen, 36);
-  cutterGeo.rotateZ(Math.PI / 2);
-  const cutter = new Brush(cutterGeo);
-  cutter.position.set(nestX, nestY, nestZ);
-  cutter.updateMatrixWorld(true);
+    const cutterGeo = new THREE.CylinderGeometry(KNUCKLE_R + 0.14, KNUCKLE_R + 0.14, nestLen, 36);
+    cutterGeo.rotateZ(Math.PI / 2);
+    const cutter = new Brush(cutterGeo);
+    cutter.position.set(nestX, nestY, nestZ);
+    cutter.updateMatrixWorld(true);
 
-  const result = csg.evaluate(solid, cutter, SUBTRACTION);
-  result.material = shell.material;
-  result.castShadow = true;
-  result.receiveShadow = true;
-  result.geometry.computeVertexNormals();
-  shell.parent.add(result);
-  shell.parent.remove(shell);
-  shell.geometry.dispose();
-  return result;
+    const result = csg.evaluate(solid, cutter, SUBTRACTION);
+    result.material = shell.material;
+    result.castShadow = true;
+    result.receiveShadow = true;
+    result.geometry.computeVertexNormals();
+    shell.parent.add(result);
+    shell.parent.remove(shell);
+    shell.geometry.dispose();
+    return result;
+  } catch (err) {
+    console.warn('millNestOut failed, keeping solid shell', err);
+    return shell;
+  }
 }
 
-const baseShell = rbox(W, BASE_H, D, 1.8, matSteel);
+let baseShell = rbox(W, BASE_H, D, 1.8, matSteel);
 baseShell.position.y = BASE_H / 2;
 base.add(baseShell);
-// Wegfräsen: Nest für Lid-Female-Barrel (rechte Hälfte)
-millNestOut(baseShell, FEMALE_LEN / 2, hingeY, hingeZ, FEMALE_LEN - 0.3);
 
 // Flat black anodized deck — no raised lip
 const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
@@ -488,16 +494,8 @@ lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
 lidPivot.add(lid);
 parts.lid = lid;
 
-const lidShell = rbox(W, LID_H, D, 1.8, matSteel);
+let lidShell = rbox(W, LID_H, D, 1.8, matSteel);
 lid.add(lidShell);
-// Wegfräsen: Nest für Base-Male-Barrel (linke Hälfte), in Lid-Lokalcoords
-millNestOut(
-  lidShell,
-  -MALE_LEN / 2,
-  -(LID_H / 2 + GAP),
-  -(D / 2 - 1.4),
-  MALE_LEN - 0.3
-);
 
 const lidInner = rbox(W - 3.4, 0.28, D - 3.4, 1.0, matAnodized);
 lidInner.position.set(0, -LID_H / 2 + 0.22, 0);
@@ -643,8 +641,9 @@ function setView(name) {
   controls.target.fromArray(v.target);
 }
 
-btnOpen.onclick = () => goOpen(targetOpen > 0.5 ? 0 : 1);
-btnExplode.onclick = () => {
+btnOpen.addEventListener('click', () => goOpen(targetOpen > 0.5 ? 0 : 1));
+btnExplode.addEventListener('click', (ev) => {
+  ev.preventDefault();
   explode = !explode;
   btnExplode.classList.toggle('on', explode);
   if (explode) {
@@ -653,13 +652,14 @@ btnExplode.onclick = () => {
   } else {
     setView('hero');
   }
-};
-btnView.onclick = () => {
+  pose();
+});
+btnView.addEventListener('click', () => {
   viewIdx = (viewIdx + 1) % viewKeys.length;
   setView(viewKeys[viewIdx]);
   if (viewKeys[viewIdx] === 'open') goOpen(1);
   if (viewKeys[viewIdx] === 'bottom') goOpen(0);
-};
+});
 
 openEl.oninput = () => {
   animOpen = false;
@@ -690,6 +690,18 @@ addEventListener('resize', () => {
 
 pose();
 setTimeout(() => { setView('hero'); }, 200);
+
+// Mill nests after UI is live — CSG must not block Exploded
+setTimeout(() => {
+  baseShell = millNestOut(baseShell, FEMALE_LEN / 2, hingeY, hingeZ, FEMALE_LEN - 0.3);
+  lidShell = millNestOut(
+    lidShell,
+    -MALE_LEN / 2,
+    -LID_H / 2,
+    -D / 2 + KNUCKLE_R,
+    MALE_LEN - 0.3
+  );
+}, 50);
 
 let last = performance.now();
 function frame(now) {
