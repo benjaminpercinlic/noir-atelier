@@ -82,7 +82,7 @@
   <aside class="panel">
     <div class="tag">Metal · CNC</div>
     <h1>N°01 Shell</h1>
-    <p>Shell only. Black anodized interior. Full-length lift-off: milled pocket + pin on base, matching sleeve on lid fills it exactly — one hairline. Sides closed. ~95°.</p>
+    <p>Shell only. Black anodized interior. Lift-off barrel with longer milled pin. Each plate has a nest milled for the other half’s barrel so it closes flush. ~95°.</p>
     <div class="controls">
       <button id="btnOpen" class="on">Open</button>
       <button id="btnExplode">Exploded</button>
@@ -109,7 +109,7 @@
     <h2>Specs (mm)</h2>
     <ul>
       <li><em>Outer</em> 92.0 × 60.4 × ~8.5</li>
-      <li><em>Hinge</em> milled pocket + sleeve fit</li>
+      <li><em>Hinge</em> pocket + sleeve · plate nests</li>
       <li><em>Stop</em> ~95°</li>
       <li><em>Mark</em> bottom N°01 · serial 1-…</li>
       <li><em>Card (ISO)</em> 85.60 × 53.98</li>
@@ -343,14 +343,13 @@ const cavity = rbox(W - 3.4, 0.32, D - 3.4, 1.0, matAnodized);
 cavity.position.y = 0.28;
 base.add(cavity);
 
-// ── FULL-LENGTH LIFT-OFF (precision pocket + sleeve) ───────
-// Base: milled annular pocket around integral pin.
-// Lid: sleeve nose fills that pocket exactly → continuous barrel,
-// you barely see that anything was cut away. Sides closed.
+// ── FULL-LENGTH LIFT-OFF (pocket + sleeve + plate nests) ───
+// Pin/sleeve join in the middle. Barrel half-protrudes → each
+// opposite plate gets a milled nest so the case closes flush.
 const KNUCKLE_R = 1.2;
 const PIN_R = 0.55;
-const POCKET_R = 0.95;          // free-milled around pin; sleeve OD matches
-const STEP = 3.2;               // engagement depth
+const POCKET_R = 0.95;
+const STEP = 5.8;               // deeper sleeve engagement
 const BARREL = W - 6;
 const MALE_LEN = BARREL / 2;
 const FEMALE_LEN = BARREL / 2;
@@ -377,16 +376,26 @@ maleCap.rotation.y = Math.PI / 2;
 maleCap.position.set(-BARREL / 2, hingeY, hingeZ);
 hinge.add(maleCap);
 
-// Freigefräste Tasche in der Stoßfläche (x = [-STEP … 0]) — Hülse füllt sie exakt
+// Freigefräste Tasche in der Stoßfläche — Hülse füllt sie exakt
 const pocketVoid = cylX(POCKET_R, STEP, matAnodized);
 pocketVoid.position.set(-STEP / 2, hingeY, hingeZ);
 hinge.add(pocketVoid);
 
-// Eingefräster Stift aus dem Taschenboden — ragt in die Hülse
-const pinLen = STEP + 1.0;
+// Längerer eingefräster Stift für besseren Halt
+const pinLen = STEP + 2.8;
 const axisPin = cylX(PIN_R, pinLen, matSteel);
 axisPin.position.set(-STEP + pinLen / 2, hingeY, hingeZ);
 hinge.add(axisPin);
+
+// Plate nest on BASE for the lid’s female barrel (right half)
+// — ohne das stößt das herausstehende Scharnier und schließt nicht bündig
+const nestMat = new THREE.MeshPhysicalMaterial({
+  color: 0x08080a, metalness: 0.3, roughness: 0.75, envMapIntensity: 0.1,
+  polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+});
+const baseNest = cylX(KNUCKLE_R + 0.06, FEMALE_LEN - 0.3, nestMat);
+baseNest.position.set(FEMALE_LEN / 2, hingeY, hingeZ);
+base.add(baseNest);
 
 // Kein Latch / Verschluss-Kläppchen
 
@@ -440,24 +449,27 @@ lidPivot.position.set(0, hingeY, hingeZ);
 root.add(lidPivot);
 
 // Female (lid): sleeve nose fills pocket; body continues full OD
-// Assembled: nose in [-STEP…0], body in [0…FEMALE_LEN-STEP]
 const female = new THREE.Group();
 const sleeveNose = cylX(POCKET_R - 0.02, STEP, matSteel);
 sleeveNose.position.x = -STEP / 2;
 female.add(sleeveNose);
-const sleeveBore = cylX(PIN_R * 1.08, STEP + 0.4, matAnodized);
-sleeveBore.position.x = -STEP / 2;
+const sleeveBore = cylX(PIN_R * 1.08, pinLen + 0.4, matAnodized);
+sleeveBore.position.x = -STEP / 2 + 0.4;
 female.add(sleeveBore);
-const femaleBody = cylX(KNUCKLE_R, FEMALE_LEN - STEP, matSteel);
+const femaleBody = cylX(KNUCKLE_R, Math.max(1, FEMALE_LEN - STEP), matSteel);
 femaleBody.position.x = (FEMALE_LEN - STEP) / 2;
 female.add(femaleBody);
 const femaleCap = new THREE.Mesh(new THREE.CircleGeometry(KNUCKLE_R, 28), matSteel);
 femaleCap.rotation.y = -Math.PI / 2;
 femaleCap.position.x = FEMALE_LEN - STEP;
 female.add(femaleCap);
-// Group origin at seam plane (x=0) so nose sits in the pocket
 female.position.set(0, 0, 0);
 lidPivot.add(female);
+
+// Plate nest on LID for the base’s male barrel (left half)
+const lidNest = cylX(KNUCKLE_R + 0.06, MALE_LEN - 0.3, nestMat);
+lidNest.position.set(-MALE_LEN / 2, 0, 0);
+lidPivot.add(lidNest);
 
 const lid = new THREE.Group();
 lid.position.set(0, LID_H / 2 + GAP, D / 2 - 1.4);
