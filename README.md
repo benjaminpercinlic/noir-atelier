@@ -9,6 +9,12 @@ Interactive 3D prototype (One Motion Bloom).
 
 Deployed via Vercel. Subdomain `cnc.noir-atelier.com` rewrite → `/cnc/` (siehe `vercel.json`).
 
+## Supplier STEP (CNC)
+
+Versandpaket: `cad/N01_SEND_for_supplier.zip`  
+Inhalt/Farben: `cad/N01_SEND/00_BOM_FINISH.txt`  
+Neu erzeugen: `python3 cad/export_step.py`
+
 ## Local
 
 ```bash

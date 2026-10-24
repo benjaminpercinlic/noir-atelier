@@ -1,0 +1,68 @@
+NOIR ATELIER — N°01
+Supplier send package (CNC + finish)
+====================================
+Web review: https://www.noir-atelier.com/cnc/
+Product:    https://noir-atelier.com
+
+UNITS: millimetres
+CARD:  ISO/IEC 7810 ID-1  85.6 × 53.98 × ~0.76
+OUTER: 92.0 × 60.4 × ~8.6  (R1.8)
+
+────────────────────────────────────
+PART LIST / FINISH (ANODIZE)
+────────────────────────────────────
+File                        Qty  Material (propose)     Finish
+---------------------------------------------------------------------------
+01_N01_base.step            1    Al 6061-T6 / 7075      Clear / silver anodize
+02_N01_lid.step             1    Al 6061-T6 / 7075      Clear / silver anodize
+03_N01_hinge_barrel.step    1    Al or stainless        Match shell (silver)
+04_N01_fan_pin.step         1    Al 6061 or brass       GOLD anodize / gold PVD
+05_N01_cradle_1.step        1    Al 6061-T6             BLACK anodize (matte)
+06_N01_cradle_2.step        1    Al 6061-T6             BLACK anodize (matte)
+07_N01_cradle_3.step        1    Al 6061-T6             BLACK anodize (matte)
+08_N01_money_clip.step      1    Stainless / brass      Gold tone or brushed steel
+09_N01_washer_PTFE.step     2    PTFE                   Natural (no anodize)
+10_N01_card_REF.step        —    REFERENCE ONLY         Do not manufacture
+99_N01_assembly_OPEN.step   1    Assembly (lid open)    Visual / fit check
+
+Colour intent (brand):
+  • Shell (base + lid + hinge): silver / natural metal
+  • Card cradles:               BLACK anodize
+  • Fan pin:                    GOLD anodize (or gold PVD)
+  • Money clip:                 gold tone preferred
+  • PTFE washers:               between cradles on pin
+
+────────────────────────────────────
+HOW CARDS ARE HELD (cradle)
+────────────────────────────────────
+Each cradle is a mechanical clip — no adhesive on the card:
+
+  1. BOTTOM LEDGE  — card rests on it
+  2. BACK WALL     — stops the short edge (near fan pivot)
+  3. TOP LIP       — overhangs ~1.4 mm onto card face → retains vertically
+  4. SIDE RAIL     — guides ~28% of card length from pivot side
+  5. PIVOT BORE    — Ø1.55 mm on gold pin Ø1.4 mm
+  6. STOP STUB     — progressive fan limit (different per cradle index)
+
+Fit: card thickness ~0.76 mm + 0.15 mm clearance under lip.
+Production option: thin flock / microfiber lining inside cradle
+(comfort + scratch protection) — apply after anodize.
+
+Stack: cradle_1 (bottom/base angle) → washer → cradle_2 → washer → cradle_3 (top/max fan)
+on fan pin seated in base.
+
+────────────────────────────────────
+HINGE
+────────────────────────────────────
+Current model: barrel on base rear. Lid opens ~95°.
+Please propose best lift-off / captive hinge for production
+(fit, wear, assembly). Shell CNC review site shows intent.
+
+────────────────────────────────────
+FILES TO MACHINE
+────────────────────────────────────
+Primary CNC: 01 base, 02 lid, 03 hinge, 04 pin, 05–07 cradles, 08 clip
+Buy / cut:   09 PTFE washers (or supply equivalent)
+Ignore:      10 card REF, 99 assembly (reference only)
+
+Questions welcome — NOIR ATELIER
